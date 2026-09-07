@@ -10512,3 +10512,19 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 커밋: 3a48f05f
 - 근거: LOG-DASHBOARD-ADD-PROCESS-STATUS-AND-FORCE-KILL-TAB 완료보고서,
   M359-M360-BATCH-STAGE4-KILL-AND-WIRING-FIX 완료보고서 Part B
+
+### M361. 아이디어(미착수, 사용자 재검토 대기) - STAGE1-4-INCOMPLETE-ATTEMPT-HISTORY-RETENTION-IDEA - 개별검증 1~4단계만 진행하고 확정 저장 없이 이탈한 "미완료 시도" 이력이 전혀 남지 않음
+- 발견/계기: 2026-09-07, ALL-STAGES-RESULT-DB-PERSISTENCE-CHECK-DIAGNOSE-ONLY(완료,
+  진단 전용) 결과를 소급 등록(구현 결정 아님).
+- 개별검증 1~5단계는 SINGLE-VALIDATION-EXPLICIT-FINAL-SAVE-GATE 설계에 따라, 5단계
+  "검증 결과 확정 저장" 버튼을 누르기 전까지는 1~4단계 결과가 DB에 전혀 영구 저장되지
+  않음(확인됨, 의도된 설계). 즉 1~4단계만 진행하고 확정 저장 없이 이탈한 "미완료
+  시도"는 검증 이력 화면에도, 다른 어떤 이력에도 전혀 남지 않는다.
+- 아이디어: 이런 미완료 시도도 "언제 누가 어떤 테이블을 몇 단계까지 진행했다가
+  중단했는지" 정도의 최소 이력을 별도로 남기고 싶은지 검토. 기존 확정 저장 게이트
+  (SINGLE-VALIDATION-EXPLICIT-FINAL-SAVE-GATE)의 설계 철학("최종 확정 전까지 DB row
+  생성 안 함")과 상충할 수 있어, 착수 전 이 설계 철학을 그대로 유지할지 부분적으로
+  완화할지 사용자 결정이 선행되어야 한다.
+- 권장 모델: Sonnet / 추론 강도: 낮음
+- 커밋: - (기록만, 코드 변경 없음)
+- 근거: ALL-STAGES-RESULT-DB-PERSISTENCE-CHECK-DIAGNOSE-ONLY 완료보고서
