@@ -4114,7 +4114,7 @@ git -C E:/verify_reports worktree remove <임시경로>
   같은 성격의 "구조 안정화 우선" 대상으로 별도 검토 여지.
 - 근거: E:\verify_reports\M66-ADJACENT-FILES-COLLECT-HANG-DIAGNOSE.txt
 
-### M67. ✅ 개선안 3번(Pair) 완료 — 검증경로 SQLite 이관+PostgreSQL 하드코딩 제거, 나머지(1·2번) 미착수
+### M67. ✅ 개선안 1·2·3번 전체 완료(문서 갱신 누락이었음, 2026-09-07 확인) — 검증경로 SQLite 이관+PostgreSQL 하드코딩 제거
 - 발견일: 2026-08-09 (사용자 목격 — "재기동하면 DB 연결 다 사라지는데 PostgreSQL만
   산다" / 진단: DB-CONNECTION-PROFILE-LOSS-ON-RESTART-DIAGNOSE, 코드 무변경)
 - **결론: DBMS별로 저장 방식이 다르다는 가설은 반증됨.** 실제로는 3개 층이 섞여
@@ -4155,10 +4155,17 @@ git -C E:/verify_reports worktree remove <임시경로>
   숨은 회귀 1건(`test_connection_role_separation.py`)이 제거 후 드러나 함께 수정.
   신규 백엔드 테스트 4건, Pair 관련 JS 하니스 14파일 baseline 대조 신규 회귀 0건,
   CLAUDE.md 필수 회귀 통과.
-- **잔여 미착수**: 개선안 (1) 재검증 실패 시 비차단 배너 안내, (2) `/projects/list`
-  판정 서버기동 초기 타이밍 오탐 방지·재시도 로직 — 착수 여부 결정 필요.
+- **개선안 1·2번도 이미 완료(2026-09-07 재확인, 문서 갱신 누락이었을 뿐)**: 개선안
+  (3) 완료 51분 뒤 같은 날(2026-08-09) 커밋 d3b7b266(M67-SILENT-REVALIDATION-
+  BANNER-AND-PROJECT-RETRY)에서 (1) 재검증 실패 시 비차단 배너 안내, (2)
+  `/projects/list` 판정 서버기동 초기 타이밍 오탐 방지·재시도 로직이 함께
+  구현·배포돼 있었음. 오늘까지 삭제·회귀 없이 생존 확인(`ui/tabler_renderer.py`
+  15988/39845행). 코드 수정 없음(문서 정정뿐).
 - 근거: E:\verify_reports\DB-CONNECTION-PROFILE-LOSS-ON-RESTART-DIAGNOSE.txt
 - 근거: E:\verify_reports\M67-CONN-PAIRS-MOVE-TO-SQLITE.txt
+- 근거: G:\내 드라이브\nxDTV-verify\reports\
+  M67-REMAINING-IMPROVEMENT-1-2-STATUS-RECHECK-DIAGNOSE-ONLY.md (또는 동일 파일명
+  .txt, 2026-09-07)
 
 ### M59. ✅ 완전 해결 — 0단계+dead필드24개삭제+reclaim_stale 결함A·B 전부 완료, 실배선만 잔존(별도 결정)
 - 발견/계기: 2026-08-09 (개별/일괄/전수 3모드에 흩어진 설정값을 전역 공통+모드별
@@ -6111,6 +6118,13 @@ git -C E:/verify_reports worktree remove <임시경로>
     특히 D(정책캐싱)는 무효화 정책(즉시반영 vs TTL) 설계결정이 먼저 필요해
     근거없이 넣으면 새 결함 위험 — 별도 작업 권장, BACKLOG 항목 유지 권고.
     (부수로 정책조회 2회→1회 중복제거는 됨)
+  - **설계결정 대기(유지) + 선택지 정리 완료(2026-09-07)**: 속도B/D/H
+    각각의 내용·트레이드오프, 그리고 4개 선택지(① 보류 유지, ② 요청스코프
+    캐싱, ③ TTL 캐시, ④ 이벤트기반 무효화)를 추천 없이 공정하게 정리
+    완료 — 사용자 결정 시 이 정리 내용을 그대로 참고 가능. 코드 수정 없음.
+    근거: G:\내 드라이브\nxDTV-verify\reports\
+    M81-SPEED-B-D-H-OPTIONS-CLARIFY-DIAGNOSE-ONLY.md (또는 동일 파일명 .txt,
+    2026-09-07)
   - **회귀**: 수정 심볼 참조 파일 전수(33개, 임의 서브셋 아님) baseline
     대조 — 수정본/baseline 둘 다 8 failed·389 passed(실패목록 완전 동일,
     신규회귀 0건). 이 전수대조 방식 자체가 1차 구현의 결함 2건을 실제로
@@ -7435,7 +7449,7 @@ git -C E:/verify_reports worktree remove <임시경로>
   JOIN-UNALIASED-COLUMN-AUTORESOLVE-AND-BADGE-ENHANCE-IMPLEMENT.md
 
 
-### M117. 해결 완료(B-1) / B-2 보류 - Oracle-PostgreSQL 이기종 이관에서
+### M117. 해결 완료(B-1, B-2 — 문서 갱신 누락이었음, 2026-09-07 확인) - Oracle-PostgreSQL 이기종 이관에서
 숫자 표현 차이로 인한 거짓 값불일치 발견 및 수정
 - 발견/계기: 2026-08-14 (M94 정책 결정 후속 - "이기종 간 수치값 표현
   정규화"를 Oracle/PostgreSQL 범위로 지금 해결하기로 확정 / M90-NUMERIC-
@@ -7469,13 +7483,16 @@ git -C E:/verify_reports worktree remove <임시경로>
   후에도 정상적으로 "다름"으로 검출 - 과잉 정규화로 인한 새로운 거짓
   일치 없음을 확인. 관련 회귀 스위트 189 passed(무관 사전존재 실패
   7건만, baseline 대조로 확인).
-- B-2(보류): "값은 같지만 표현이 달랐다"는 사실을 화면에 안내(advisory)
-  하는 UI 기능은 이번 회차 보류 - 완전일치 행 자체가 재이관 대상이
-  아니라 store에 저장되지 않는 기존 설계와 충돌해, 신규 레코드 종류
-  설계+기존 소비처 전수 영향조사가 선행돼야 함. 스킵(불필요 결론)이
-  아니라 범위/시간상 후속 세션 권장으로 명시적 이월.
+- B-2도 이미 완료(2026-09-07 재확인, 문서 갱신 누락이었을 뿐): "값은 같지만
+  표현이 달랐다"는 사실을 화면에 안내(advisory)하는 UI 기능은 같은 날
+  (2026-08-14) 오전 중 `M117-B2-REPRESENTATION-ADVISORY-IMPLEMENT`로 이미
+  구현·검증·배포됐음. 오늘까지 삭제 없이 생존 확인(`services/exact_diff/
+  agg_contribution.py` 등). 코드 수정 없음(문서 정정뿐).
 - 근거: G:\내 드라이브\nxDTV-verify\reports\
   M90-NUMERIC-COMPARISON-DUALITY-ORACLE-PG-FULL.md
+- 근거: G:\내 드라이브\nxDTV-verify\reports\
+  M117-B2-HETEROGENEOUS-MIGRATION-STATUS-RECHECK-DIAGNOSE-ONLY.md (또는 동일
+  파일명 .txt, 2026-09-07)
 
 
 
@@ -8187,7 +8204,7 @@ SUM 미선택 컬럼의 불일치를 반영 못 해 실제 규모를 과소평�
   COST-MODEL-FIX-AND-INCLUDE-PAIR-DEFAULT-SEQUENTIAL-IMPLEMENT-STEP1.md
   / -STEP2.md
 
-### M140. 조사완료(구조 변경 필요, 미착수) - 4단계 완료 후 자동
+### M140. ⚠️ 부분 해소(2026-09-07) - 4단계 완료 후 자동
 스냅샷 저장 루프가 브라우저 탭에 의존하는 구조임을 확정, 일괄검증
 (수천 테이블) 규모 적용은 지금 구조로 불가능
 - 발견/계기: 2026-08-14 (사용자가 22개 그룹 자동저장을 실사용하며
@@ -8219,8 +8236,20 @@ SUM 미선택 컬럼의 불일치를 반영 못 해 실제 규모를 과소평�
   타이머 구현 불필요로 결론.
 - 코드 수정 없음(순수 조사) - 일괄검증 규모 적용은 구조 변경 사안이라
   별도 제안·설계·승인 필요, 이번엔 미착수.
+- **부분 해소(2026-09-07 재확인)**: (A) 브라우저 의존 구조 자체는
+  `STAGE5-AUTOSAVE-SERVER-SIDE-JOB-MIGRATE-IMPLEMENT-M140`으로 서버 job
+  패턴(대량 stream 경로가 쓰던 `reimport_job.py` 패턴 확장)으로 이관돼 해소.
+  단 그 완료보고서 자신이 다중그룹 실측·재진입화면 재현 등 잔여 실측 2건을
+  명시하고 있어 ⚠️(완전종결 아님). (B) 일괄검증(수천 테이블) 규모 적용은
+  이 M140 이관과는 별개로, 애초부터 브라우저 비의존 구조였던 기존
+  `batch_auto_save_*` 인프라(2026-08-29~31 구현)가 처리하고 있었음이
+  확인돼 원래부터 무관·완전 해소. 잔여 2건은 이미 구체 권고로 기록돼 있어
+  신규 조사 없이 짧은 재검증 지침 하나로 완전종결 가능.
 - 근거: G:\내 드라이브\nxDTV-verify\reports\
   AUTOSNAPSHOT-BROWSER-DEPENDENCY-AND-PROGRESS-UX-DIAGNOSE.md
+- 근거: G:\내 드라이브\nxDTV-verify\reports\
+  M140-STAGE4-BROWSER-DEPENDENCY-STATUS-RECHECK-AFTER-M355-DIAGNOSE-ONLY.md
+  (또는 동일 파일명 .txt, 2026-09-07)
 
 
 ### M141. 조사완료(조건부 실현가능 확정, 구현 지침 발행됨) - 불일치
