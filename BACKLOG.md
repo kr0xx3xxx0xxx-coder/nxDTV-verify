@@ -10528,3 +10528,23 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 권장 모델: Sonnet / 추론 강도: 낮음
 - 커밋: - (기록만, 코드 변경 없음)
 - 근거: ALL-STAGES-RESULT-DB-PERSISTENCE-CHECK-DIAGNOSE-ONLY 완료보고서
+
+### M362. 아이디어(미착수, 사용자 재검토 대기) - STAGE5-ZEROAXIS-T2-PKDETAIL-SAVE-SUPPORT-IDEA - 개별검증 5단계 GROUP BY 0축(그룹 없음) 실행 시 불일치 PK 상세목록(T2) 저장이 차단됨
+- 발견/계기: 2026-09-08, ZEROAXIS-AUTOSAVE-EXCLUSION-REAL-REASON-AND-SUMMARY-SAVE-
+  FEASIBILITY(완료) 결과를 소급 등록(구현 결정 아님).
+- 개별검증 5단계에서 GROUP BY 0축(그룹 없음, "전체합계" 1행) 실행 시, 그룹 요약
+  (T1 - 집계값+판정)은 체크박스와 무관하게 항상 저장되고 있으나, 불일치 PK 상세목록
+  (T2 - 재이관 대상)은 0축에서 저장 자체가 차단돼 있다(코드로 확인됨). 그룹이 있는
+  경우엔 T2도 "불일치 자동저장" 체크박스를 켜면 저장되는데, 0축은 체크박스를 켜도
+  T2 저장 시도조차 안 된다.
+- 사용자 결정: 지금은 현행 유지(0축 T2 저장 지원 안 함), 다만 나중에 다시 검토할
+  수 있게 백로그에만 기록.
+- 착수 시 주의사항(조사에서 확인된 숨은 위험): 단순히 제외 조건만 지우면 안 됨 -
+  `services/batch_auto_save_prepare.py`의 폴백 로직이 "(축 없음)" 센티널 문자열을
+  실제 컬럼명으로 오인해 잘못된 SQL(예: `WHERE "(축 없음)" = '전체합계'`)을 만들
+  위험이 있음(현재는 이 분기가 안 타서 안 드러난 잠재 결함). 착수 전 이 폴백
+  로직에 명시적 예외 처리가 필요함(배치 경로도 같은 함수를 공유하므로 함께 검토
+  필요).
+- 권장 모델: Sonnet / 추론 강도: 낮음
+- 커밋: - (기록만, 코드 변경 없음)
+- 근거: ZEROAXIS-AUTOSAVE-EXCLUSION-REAL-REASON-AND-SUMMARY-SAVE-FEASIBILITY 완료보고서
