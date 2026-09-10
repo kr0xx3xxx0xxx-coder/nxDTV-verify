@@ -10167,6 +10167,8 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 권장 모델: Sonnet / 추론 강도: 낮음
 - 커밋: - (기록만, 코드 변경 없음)
 - 참고: G:\내 드라이브\nxDTV-verify\reports\LLM-JUDGE-TIMEOUT-KEEPALIVE-TUNE-INVESTIGATE-AND-FIX_20260904.md / G:\내 드라이브\nxDTV-verify\reports\GROUPBY-SUM-OVERLAP-EDGECASES-INVESTIGATE-AND-FIX_20260904.md / G:\내 드라이브\nxDTV-verify\reports\CANDIDATE-SUBTYPE-LLM-JUDGE-INVESTIGATE-FOR-NUMERIC-CODE-CLASSIFY_20260904.md
+- **2026-09-10 재확인, 계속 보류 권고 강화**: `services/candidate_scoring.py`::`_llm_semantic_judge_contribution()`(Part3, 이미 구현돼 있으나 `CANDIDATE_SCORING_LLM_JUDGE_ENABLED` 기본 OFF)가 C1/C2 정식 경로와 달리 '규칙기반이 이미 확신 있게 판정한 컬럼에는 LLM을 호출하지 않는다'는 M50 안전원칙을 상속받지 못함(모든 GROUP BY/SUM 후보에 무조건 호출) — 신규 발견. 추가로 LLM 1회 실패 시 회로차단기가 60초간 열려 그 사이 다른 컬럼들도 조용히 LLM 미호출 상태가 되는데, 화면상 '진짜 물어봤는데 중립'과 '이번엔 안 물어봄' 구분이 안 됨(신규 발견). fail-open 자체는 5가지 실패모드 전부 안전 확인(판정이 막힐 위험은 낮음). **착수 선행조건**: 이미 확신 있는 점수 요소(예: SEMANTIC_DIMENSION_STRONG)가 있는 컬럼은 LLM 호출 자체를 스킵하는 가드를 `_llm_semantic_judge_contribution()`에 먼저 추가할 것. 근거: LLM-JUDGE-CONNECTION-AND-VALUEONLY-VETO-RISK-INVESTIGATE-ONLY_20260910.md
+- **공통 사유(M339/M353 공통)**: 현재 Ollama 환경이 GPU/메모리 자원 경합으로 추론 요청이 간헐적으로 실패하는 상태(LOG-EXPLAIN-LLM-NOT-RESPONDING-DIAGNOSE-AND-FIX, BATCH-FAILURE-SUMMARY-LLM-GUIDE-TIMEOUT-COLDSTART-FIX에서도 동일 환경 이슈 반복 확인)라, 두 항목 다 환경이 안정된 뒤 재검토 권장(사용자 결정, 2026-09-10).
 
 ### M340. ✅ 해결 완료(2026-09-07) - MODEL-CONFIG-LLM-GATE-COMMENT-CODE-MISMATCH-DECIDE - config/model_config.py:294 주석-실동작 불일치 결정 필요
 - 2026-09-04 세션 중 채팅으로만 논의, 지침화·실행 전혀 안 된 항목을 소급 기록(구현 결정 아님).
@@ -10391,6 +10393,8 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   MEASURE-NAMED-NUMERIC-GROUPBY-FULL-EXCLUDE-CONSISTENCY-FIX,
   DISCOUNT-RATE-GAP-SCALE-RELAX-AND-RATE-RATIO-EXCEPTION-IMPLEMENT-M351,
   CANDIDATE-SUBTYPE-LLM-JUDGE-INVESTIGATE-FOR-NUMERIC-CODE-CLASSIFY)
+- **2026-09-10 재확인**: 겨냥 지점(`services/candidate_engine.py`::`_classify_numeric_code_evidence()`)이 대상 모집단은 작아(카디널리티 low/medium+정수형 scale 0~2+이름매칭 없음으로 이미 좁혀짐) 상대적으로 안전하다는 판단은 유효. 다만 이 지점이 위치한 파일 자체가 개별검증·배치검증이 공유하는 동기 경로라, M339가 가진 `individual_verification` 게이트를 **자동으로 상속받지 않음**(신규 발견) — 구현 시 이 가드를 명시적으로 새로 추가해야 함. **착수 선행조건 3가지**: (1)배치검증 명시적 제외 가드 신규 추가 (2)VALUE_ONLY 등급 자체가 이름매칭 없음을 이미 전제하므로 추가 스킵조건은 불필요 (3)veto 호출 실패 시 fail-open으로 기존 NONE 강등 없이 VALUE_ONLY 유지. 근거: LLM-JUDGE-CONNECTION-AND-VALUEONLY-VETO-RISK-INVESTIGATE-ONLY_20260910.md
+- **공통 사유(M339/M353 공통)**: 현재 Ollama 환경이 GPU/메모리 자원 경합으로 추론 요청이 간헐적으로 실패하는 상태(LOG-EXPLAIN-LLM-NOT-RESPONDING-DIAGNOSE-AND-FIX, BATCH-FAILURE-SUMMARY-LLM-GUIDE-TIMEOUT-COLDSTART-FIX에서도 동일 환경 이슈 반복 확인)라, 두 항목 다 환경이 안정된 뒤 재검토 권장(사용자 결정, 2026-09-10).
 
 ### M354. ✅ 해결 완료(2026-09-06) - DOMAIN-LOG-ROOT-HANDLER-WIRING-MISSING-126SITES - 도메인 로거 126곳이 root 로거로 흘러가는데 root 로거에 파일 핸들러 미연결
 - 발견/계기: 2026-09-06, ALL-STAGES-BROWSER-FORCE-CLOSE-RESUME-AND-STEP-LOGGING-MAP-DIAGNOSE-ONLY
