@@ -10579,3 +10579,28 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 권장 모델: Sonnet / 추론 강도: 낮음
 - 커밋: 2a9eb58b (코드 저장소, 주석 추가만)
 - 근거: ORPHAN-RENDER-FUNCTIONS-COMMENT-MARK-AND-CLEANUP-LOG-DELETE 완료보고서
+- **2026-09-10 재확인 — 10개 함수를 위험도별 2개 그룹으로 재분류, 전부
+  보류 유지**:
+
+  **그룹1(개별검증 완료 화면에서 명시적으로 제거됨, 4개)**:
+  `_mvRenderStrategyOverride`, `_mvRenderIndividualResultPanel`,
+  `_mvRenderInvestigationReport`, `_mvRenderMismatchSummary` — 153f4681
+  커밋에 '미사용·오해 유발 → 제거'라는 명시적 영구제거 사유가 문서화돼
+  있고 재도입 언급 없음. 상대적으로 삭제 위험 낮음.
+
+  **그룹2(일괄검증·전수검증·운영 대시보드용, 아직 미착수 영역, 6개)**:
+  `_mvRenderBatchExhaustive`, `_mvRenderOpsDashboard`, `_mvRenderBatchHistory`,
+  `_mvRenderMigrationResult`, `_mvRenderCandidateRecommendation`,
+  `_mvRenderMultiScopePlan` — '지금 화면 연결이 없다'가 '해당 기능(일괄
+  검증·전수검증)이 아직 개발 시작도 안 해서'일 뿐 '영구히 불필요해서'가
+  아님. 이 영역 착수 시 재사용될 가능성을 배제할 수 없어 **삭제 절대
+  금지**(사용자 확정, 2026-09-10).
+
+  **공통 확인사항**: 10개 함수 전부 tests/test_batch_exhaustive.py 등
+  10개 테스트 파일이 직접 참조 중이라, 향후 그룹1만이라도 삭제를 검토할
+  경우 테스트 정리와 반드시 한 묶음으로 진행해야 함. 백엔드 라우트 6개
+  (strategy-override-check/candidate-recommend/multi-scope-plan/
+  ops-dashboard/batch-history/migration-result)와 연결 서비스도 프론트와
+  함께 고아 상태로 확인됐으나 이번 결정 범위 밖(별도 판단 필요).
+
+  근거: ORPHAN-FUNCTIONS-ORIGINAL-INTENT-INVESTIGATE-ONLY_20260910.md
