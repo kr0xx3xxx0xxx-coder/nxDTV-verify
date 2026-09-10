@@ -10552,3 +10552,30 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 권장 모델: Sonnet / 추론 강도: 낮음
 - 커밋: - (기록만, 코드 변경 없음)
 - 근거: ZEROAXIS-AUTOSAVE-EXCLUSION-REAL-REASON-AND-SUMMARY-SAVE-FEASIBILITY 완료보고서
+
+### M363. 아이디어(미착수) - ORPHAN-RENDER-FUNCTIONS-9-CLEANUP-CANDIDATE - ui/js_batch_phase_blocks.py 렌더 함수 9개+호출부 1개, 실 UI 진입점 없음(주석표시만, 삭제 보류)
+- 발견/계기: 2026-09-10, TABLER-RENDERER-SPLIT-PHASE1-REAL-E2E-DEEP-VERIFY(완료)가
+  발견, ORPHAN-RENDER-FUNCTIONS-COMMENT-MARK-AND-CLEANUP-LOG-DELETE에서 소급 등록.
+- 대상 함수(9개, 전부 `ui/js_batch_phase_blocks.py`): _mvRenderMismatchSummary,
+  _mvRenderInvestigationReport, _mvRenderCandidateRecommendation,
+  _mvRenderMultiScopePlan, _mvRenderStrategyOverride, _mvRenderBatchExhaustive,
+  _mvRenderOpsDashboard, _mvRenderBatchHistory, _mvRenderMigrationResult.
+  + 이를 호출하는 `ui/tabler_renderer.py`의 _mvRenderIndividualResultPanel
+  (Phase 84) 1개, 총 10개.
+- 확인 방법/근거: 전체 저장소 grep 결과 실 호출부는 tests/test_individual_ux.py
+  등 tests/test_*_ux.py 하네스뿐이었고(_mvRenderIndividualResultPanel 자체는
+  js_batch_phase_blocks.py:1134 Phase 86~88 Batch Row Detail 블록에서도 호출되나
+  이 블록 자체의 실 화면 진입 경로 재확인은 안 됨), 실 브라우저 화면 어디서도
+  이 함수들을 트리거하는 진입점을 찾지 못함.
+- 이번엔 삭제하지 않고 각 함수 정의 바로 위에 "미사용 확인됨, 삭제 전 재확인
+  필요, 임의 삭제 금지" 주석만 추가(코드 로직 변경 없음).
+- 향후 삭제를 검토할 때 재확인할 사항: (1) js_batch_phase_blocks.py:1134이
+  포함된 Phase 86~88 블록 자체가 정말 실 화면에서 호출되는지 별도 재조사 필요
+  (이 블록이 살아있다면 그 안에서 호출되는 _mvRenderIndividualResultPanel도
+  간접적으로 살아있을 가능성), (2) 정말 다른 entry point가 전혀 없는지
+  전체 재조사, (3) tests/test_*_ux.py 하네스가 삭제 시 함께 정리 대상인지 확인.
+- M71(ui/tabler_renderer.py 구조 건강도) 항목과 연관 — 동일 계열의 미분리/
+  orphan 코드 정리 과제로 교차 참조.
+- 권장 모델: Sonnet / 추론 강도: 낮음
+- 커밋: 2a9eb58b (코드 저장소, 주석 추가만)
+- 근거: ORPHAN-RENDER-FUNCTIONS-COMMENT-MARK-AND-CLEANUP-LOG-DELETE 완료보고서
