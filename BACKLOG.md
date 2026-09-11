@@ -5316,7 +5316,7 @@ git -C E:/verify_reports worktree remove <임시경로>
 - 근거: 채팅 조사 결과(별도 파일 미작성) + E:\verify_reports\ORPHANED-REIMPORT-JOB-CLEANUP-AND-DB-SESSION-SAFETY.txt
 - 근거: E:\verify_reports\M69-PG-TERMINATE-BACKEND-WIRE.txt
 
-### M70. 미결정 사항 일괄 기록 — 지난 세션 도중 답변 없이 넘어간 항목 4건
+### M70. ✅ 해결완료(4건 전부) — 지난 세션 도중 답변 없이 넘어간 항목 4건, 하위 [1]~[4] 전부 개별 확인·종결됨(2026-09-11 헤더 정정)
 - 발견/계기: 2026-08-10 (사용자 요청 — "네가 지침결과 확인하면서 의견 준 것들에
   일일이 답 안 한 것들 다 백로그에 등록해")
 
