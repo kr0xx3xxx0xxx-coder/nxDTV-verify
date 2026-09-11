@@ -10537,7 +10537,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: LOG-DASHBOARD-ADD-PROCESS-STATUS-AND-FORCE-KILL-TAB 완료보고서,
   M359-M360-BATCH-STAGE4-KILL-AND-WIRING-FIX 완료보고서 Part B
 
-### M361. 아이디어(미착수, 사용자 재검토 대기) - STAGE1-4-INCOMPLETE-ATTEMPT-HISTORY-RETENTION-IDEA - 개별검증 1~4단계만 진행하고 확정 저장 없이 이탈한 "미완료 시도" 이력이 전혀 남지 않음
+### M361. ✅ 해결완료(2026-09-11) - STAGE1-4-INCOMPLETE-ATTEMPT-HISTORY-RETENTION-IDEA - 개별검증 1~4단계만 진행하고 확정 저장 없이 이탈한 "미완료 시도" 이력이 전혀 안 남던 문제, 구현+정책개정+실DB검증까지 완료
 - 발견/계기: 2026-09-07, ALL-STAGES-RESULT-DB-PERSISTENCE-CHECK-DIAGNOSE-ONLY(완료,
   진단 전용) 결과를 소급 등록(구현 결정 아님).
 - 개별검증 1~5단계는 SINGLE-VALIDATION-EXPLICIT-FINAL-SAVE-GATE 설계에 따라, 5단계
@@ -10566,6 +10566,20 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   리터럴 값 마스킹(컬럼명/구조만 보존) — 기존 "로그에 SQL 본문·데이터 값
   미기록" 보안 원칙과 충돌 방지. 근거:
   M361-INCOMPLETE-ATTEMPT-HISTORY-DESIGN-INVESTIGATE-ONLY_20260911.md.
+- **2026-09-11 구현+정책개정+검증 완료**: M361-SQL-SNAPSHOT-LITERAL-
+  MASKING-VIA-SQLGLOT-FEASIBILITY-DIAGNOSE-ONLY 조사(sqlglot AST 기반
+  리터럴 마스킹 조건부 가능 확정) 이후, M361-INCOMPLETE-ATTEMPT-HISTORY-
+  SNAPSHOT-IMPLEMENT(커밋 e5b221cc)로 1~4단계 진입 시마다 진행기록을
+  자동 upsert하는 기능 구현(최초엔 리터럴 마스킹 적용). 이후 M361-
+  STAGE1-3-DIALECT-TYPE-MISMATCH-DIAGNOSE-ONLY로 잠재 버그 우려를
+  재현 테스트까지 거쳐 조사한 결과 실제 버그 아님 확정(analyze/generate
+  라우트의 src_db는 애초에 str 타입, count/execute는 애초에 dict
+  타입이라 설계상 정상). 마지막으로 이관쿼리가 이관팀 제공 그대로
+  실행되는 구조(통채로 이관)이고 폐쇄망 운영+종료 시 디스크 물리파기
+  원칙이라는 사용자 판단에 따라 M361-SQL-SNAPSHOT-DROP-MASKING-STORE-
+  RAW(커밋 abed0ae5)로 마스킹 정책을 번복, 원본 SQL 그대로 저장하는
+  것으로 최종 확정. 실제 웹서버 라우트 경유 E2E로 주민번호/전화번호류
+  리터럴이 DB에 원본 그대로 저장됨을 직접 조회로 확인. 잔여 항목 없음.
 
 ### M362. ✅ 해결완료(2026-09-11) - STAGE5-ZEROAXIS-T2-PKDETAIL-SAVE-SUPPORT-IDEA - 개별검증 5단계 GROUP BY 0축(그룹 없음) 실행 시 불일치 PK 상세목록(T2) 저장 차단 문제, 구현+실DB검증까지 완료
 - 발견/계기: 2026-09-08, ZEROAXIS-AUTOSAVE-EXCLUSION-REAL-REASON-AND-SUMMARY-SAVE-
