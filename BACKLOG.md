@@ -9792,14 +9792,34 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 커밋: - (기록만, 코드 변경 없음)
 - 참고: G:\내 드라이브\nxDTV-verify\reports\BACKLOG-CHAT-ONLY-IDEAS-RECORD_20260829.md
 
-### M293. 아이디어(미착수) - BATCH-INDIVIDUAL-AUTOSAVE-MISMATCH-OPTIN-CHECKBOX - 개별/일괄 화면 "불일치 자동저장" 체크박스 신설
+### M293. ✅ 해결 완료(2026-09-11, 상태 재확인·정정) - BATCH-INDIVIDUAL-AUTOSAVE-MISMATCH-OPTIN-CHECKBOX - 개별/일괄 화면 "불일치 자동저장" 체크박스 신설
 - 2026-08-28 세션 중 채팅으로만 논의, 지침화·조사 전혀 안 된 아이디어를 소급 기록(구현 결정 아님).
 - 사용자 제안: 위험도(저장비용) 게이트 기반 자동화(M288/M291, 여전히 보류)보다 단순하게, 체크박스 opt-in 하나로 자동저장 여부를 사용자가 직접 결정하게 하자는 대안.
 - 합의된 방향: 체크박스(사용자 의도) + 비용 게이트(안전판) 병행 - 체크 켜져 있어도 저장 비용이 큰 건은 자동저장 대신 "확인 필요"로 별도 표시.
 - M291 설계(cost cap 게이트)와 개념적으로 맞닿아 있으나, 이 체크박스 UI 자체를 M291 설계 문서에 명시적으로 반영했는지 미확인 - 다음 조사/구현 시 두 논의를 통합해서 다룰 것.
+- **2026-09-11 재확인 결과(BACKLOG-M293-STATUS-VERIFY-THEN-M362-FEASIBILITY-INVESTIGATE)**:
+  "지금까지 나온 지침은 전부 개별검증만 다뤘다"는 당초 가정과 달리, 코드 확인 결과
+  **개별·일괄 양쪽 모두 체크박스 UI + 실제 저장 트리거 배선이 완료돼 있다** - 오히려
+  일괄 쪽이 개별보다 먼저(2026-08-29) 완성됐다.
+  - 일괄: UI 배선 c881d8b9(2026-08-29, 체크박스만·저장 미실행 상태로 커밋) →
+    실제 게이트→prepare→store 트리거 배선 11fd7994(2026-08-29, BATCH-AUTOSAVE-
+    TRIGGER-WIRE-IMPLEMENT) - services/batch_stats_execute_service.py:1376
+    `if auto_save_enabled:` 분기로 확인.
+  - 개별: 4d06c777(2026-08-30, INDIVIDUAL-AUTOSAVE-STAGE4-CHECKBOX-WIRE-IMPLEMENT)
+    로 동일 트리거 배선 완료.
+  - 이후 09-08~10 사이 나온 4개 커밋(AUTOSAVE-CHECKBOX-RESET-ON-REEXEC-FIX/
+    DISABLE-WHEN-ZEROAXIS/LABEL-CLARIFY-T2-ONLY-FIX/LABEL-ADD-ZEROAXIS-CAVEAT-FIX)은
+    이미 완성된 개별 체크박스의 **버그 수정·문구 개선**이었을 뿐, "일괄 미구현" 상태를
+    의미하지 않음 - 4개 전부 `git branch --contains`로 main 편입 확인.
+  - 잔여 격차(참고, 이번 지침 범위 밖): 일괄 체크박스에는 개별에만 있는
+    AUTOSAVE-CHECKBOX-DISABLE-WHEN-ZEROAXIS류 0축 처리·재실행 시 리셋 폴리시가
+    동일 수준으로 갖춰져 있는지는 이번 재확인에서 별도 검증하지 않았다(일괄이
+    구조적으로 0축 시나리오를 갖는지 자체가 불명확 - 후속 조사 필요 시 신규 항목으로).
 - 권장 모델: Sonnet / 추론 강도: 낮음
-- 커밋: - (기록만, 코드 변경 없음)
-- 참고: G:\내 드라이브\nxDTV-verify\reports\BACKLOG-CHAT-ONLY-IDEAS-RECORD_20260829.md
+- 커밋(이 상태 정정 자체는 문서 갱신뿐, 코드 변경 없음): - / 근거 커밋:
+  620da3b2, c881d8b9, 11fd7994, 4d06c777, 35f65343, 4febece5, 799141da, b10a0da5
+- 참고: G:\내 드라이브\nxDTV-verify\reports\BACKLOG-CHAT-ONLY-IDEAS-RECORD_20260829.md,
+  G:\내 드라이브\nxDTV-verify\reports\BACKLOG-M293-STATUS-VERIFY-THEN-M362-FEASIBILITY-INVESTIGATE_20260911.md
 
 ### M294. 완료(M285 격차 해소) - HASH-VERIFY-DECOUPLE-FROM-WORKFLOW-TOKEN-IMPLEMENT - 레코드셋 해시 검증 workflow_token 의존 제거
 - 레코드셋 해시 검증(M248/M263) 자동배선이 workflow_token(HTTP 전용)에 의존해 배치(동일 프로세스 직접함수호출) 경로에서 원리적으로 발동 불가능하던 M285의 유일한 격차를 해소.
