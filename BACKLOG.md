@@ -10420,7 +10420,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 커밋: - (기록만, 코드 변경 없음)
 - 근거: DISCOUNT-RATE-GAP-SCALE-RELAX-AND-RATE-RATIO-EXCEPTION-IMPLEMENT-M351 완료보고서
 
-### M353. 아이디어(미착수) - LLM-VALUEONLY-LASTRESORT-GROUPBY-SEMANTIC-VETO - VALUE_ONLY 최후수단 허용이 통계(값분포)만으로 판단, 컬럼 의미(업무 타당성)는 미검증
+### M353. 조사완료(구현 비권장, 2026-09-11) - LLM-VALUEONLY-LASTRESORT-GROUPBY-SEMANTIC-VETO - VALUE_ONLY 최후수단 veto, 실측 결과 정상 컬럼 오판 확인되어 구현 비권장
 - 발견/계기: 2026-09-06 (오늘 세션 마무리 논의, 채팅으로만 논의되고 지침화·실행 전혀 안 된
   항목을 소급 기록 - 구현 결정 아님)
 - 오늘 여러 지침(M342/M351 등)을 거치며 확립된 2단계 배제 구조 - ①이름이 확실히 아니라고
@@ -10447,6 +10447,19 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   CANDIDATE-SUBTYPE-LLM-JUDGE-INVESTIGATE-FOR-NUMERIC-CODE-CLASSIFY)
 - **2026-09-10 재확인**: 겨냥 지점(`services/candidate_engine.py`::`_classify_numeric_code_evidence()`)이 대상 모집단은 작아(카디널리티 low/medium+정수형 scale 0~2+이름매칭 없음으로 이미 좁혀짐) 상대적으로 안전하다는 판단은 유효. 다만 이 지점이 위치한 파일 자체가 개별검증·배치검증이 공유하는 동기 경로라, M339가 가진 `individual_verification` 게이트를 **자동으로 상속받지 않음**(신규 발견) — 구현 시 이 가드를 명시적으로 새로 추가해야 함. **착수 선행조건 3가지**: (1)배치검증 명시적 제외 가드 신규 추가 (2)VALUE_ONLY 등급 자체가 이름매칭 없음을 이미 전제하므로 추가 스킵조건은 불필요 (3)veto 호출 실패 시 fail-open으로 기존 NONE 강등 없이 VALUE_ONLY 유지. 근거: LLM-JUDGE-CONNECTION-AND-VALUEONLY-VETO-RISK-INVESTIGATE-ONLY_20260910.md
 - **공통 사유(M339/M353 공통)**: 현재 Ollama 환경이 GPU/메모리 자원 경합으로 추론 요청이 간헐적으로 실패하는 상태(LOG-EXPLAIN-LLM-NOT-RESPONDING-DIAGNOSE-AND-FIX, BATCH-FAILURE-SUMMARY-LLM-GUIDE-TIMEOUT-COLDSTART-FIX에서도 동일 환경 이슈 반복 확인)라, 두 항목 다 환경이 안정된 뒤 재검토 권장(사용자 결정, 2026-09-10).
+- **2026-09-11 실측조사 완료(LLM-VALUEONLY-LASTRESORT-VETO-RISK-DIAGNOSE-
+  ONLY)**: 최종 판정 "구현 비권장" — ②사전참여와 동일한 위험구조로
+  재확인됨. 실제 LLM 호출 실측 결과, VALUE_ONLY가 과거 라이브 DB에서
+  실제로 구제했던 정답 사례(`PROD_GRP`)를 LLM이 HIGH confidence로
+  잘못 veto함(명시적 veto 발동 3건 중 2건 오답, 진짜 부적합 컬럼을
+  잡아낸 사례는 0건). 응답 스키마도 80% 비율로 위반(confidence 값이
+  verdict 필드에 새어들어옴). VALUE_ONLY 발동 빈도는 낮지 않음(최근
+  1주일 3차례 정책 튜닝된 활성 경로로 확인) — "위험을 감수할 실익이
+  작다"는 완화 근거도 성립 안 함. 이 조사 도중 Ollama 서비스가 완전
+  다운되는 인프라 불안정도 재확인됐고, 이를 계기로 2026-09-11 사용자
+  결정으로 nxDTV 내 LLM 기능 전체를 당분간 비활성화하기로 함
+  (NXDTV-LLM-FEATURES-DISABLE-AND-OLLAMA-SERVICE-STOP 지침 발행) — 본
+  아이디어는 그와 무관하게 독립적으로 기각. 잔여 항목 없음.
 
 ### M354. ✅ 해결 완료(2026-09-06) - DOMAIN-LOG-ROOT-HANDLER-WIRING-MISSING-126SITES - 도메인 로거 126곳이 root 로거로 흘러가는데 root 로거에 파일 핸들러 미연결
 - 발견/계기: 2026-09-06, ALL-STAGES-BROWSER-FORCE-CLOSE-RESUME-AND-STEP-LOGGING-MAP-DIAGNOSE-ONLY
