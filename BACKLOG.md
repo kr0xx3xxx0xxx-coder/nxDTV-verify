@@ -10287,12 +10287,29 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 커밋(갱신): 7e190f60
 - 근거(갱신): G:\내 드라이브\nxDTV-verify\reports\SQL-PARSE-MODEL-CONVERT-HASH-WRAPPER-OPTIMIZE-M345_20260905.md
 
-### M346. 아이디어(미착수) - BATCH-FAILURE-SUMMARY-LLM-GUIDE-COLDSTART-TIMEOUT-VULNERABLE - BATCH_FAILURE_SUMMARY_LLM_GUIDE 자체 타임아웃(8초) 콜드스타트 취약점
+### M346. ✅ 해결완료(2026-09-10 코드+2026-09-11 실측검증) - BATCH-FAILURE-SUMMARY-LLM-GUIDE-COLDSTART-TIMEOUT-VULNERABLE - BATCH_FAILURE_SUMMARY_LLM_GUIDE 타임아웃 8→20초 상향 및 실콜드스타트 검증까지 완료
 - 2026-09-04 세션 중 채팅으로만 논의, 지침화·실행 전혀 안 된 항목을 소급 기록(구현 결정 아님).
 - `BATCH_FAILURE_SUMMARY_LLM_GUIDE` 자체 타임아웃(8초)이 콜드스타트에 취약함 - keep_alive는 LLM-JUDGE-TIMEOUT-KEEPALIVE-TUNE-INVESTIGATE-AND-FIX에서 적용됐지만, 이 타임아웃 자체는 해당 지침 범위 밖으로 남았음.
 - 권장 모델: Sonnet / 추론 강도: 낮음
 - 커밋: - (기록만, 코드 변경 없음)
 - 참고: G:\내 드라이브\nxDTV-verify\reports\LLM-JUDGE-TIMEOUT-KEEPALIVE-TUNE-INVESTIGATE-AND-FIX_20260904.md
+- **2026-09-10 코드 수정 + 2026-09-11 실측검증 완료**: 어제
+  BATCH-FAILURE-SUMMARY-LLM-GUIDE-TIMEOUT-COLDSTART-FIX(커밋 aa154823)로
+  `BATCH_FAILURE_SUMMARY_LLM_GUIDE_TIMEOUT_SECONDS`를 8.0→20.0으로
+  상향, keep-alive(`OLLAMA_KEEP_ALIVE`)는 이미 E1/BATCH_FAILURE_SUMMARY/
+  C1·C2/Part3 4개 Ollama 연동에 공유 적용돼 있음을 확인. 다만 어제는
+  로컬 Ollama 메모리 부족(HTTP 500)으로 "새 타임아웃 안에서 실제
+  콜드스타트 성공" 검증이 fail-open 동작 확인에 그쳤음. 오늘
+  BATCH-FAILURE-SUMMARY-LLM-GUIDE-COLDSTART-TIMEOUT-FIX로 그 공백을
+  메움 — 실제 콜드스타트 5회 재현 중 4회(80%) 7~8.4초로 20초에
+  여유롭게 성공, 1회(20%, Ollama 서비스 재기동 직후 첫 요청이라는
+  극단 조건)만 22.15초로 초과해 fail-open+서킷브레이커(60초 차단)로
+  안전 흡수됨을 확인. 이 기능은 화면을 막지 않는 3차 보강 안내라
+  극단치 실패의 사용자 영향은 "이번 배치엔 요약 문구 미표시"뿐 —
+  타임아웃을 더 늘리면 정상 케이스(80%)의 폴백 판단 대기만 늘어나는
+  트레이드오프가 있고 다른 3개 연동과도 20초로 통일돼 있어, 20초
+  유지가 적절하다는 결론(추가 변경 불필요). 회귀 56/56 통과(어제와
+  동일). 잔여 항목 없음.
 
 ### M347. ✅ 해결 완료(2026-09-05) - SYNC-BUFFER-VS-ASYNC-JOB-PRIORITY-ORDER-RECHECK - 동기 결과 버퍼와 비동기(F7) job 결과 동시 존재 시 고정 순서(최신 우선 아님)
 - 발견/계기: 2026-09-05 (STAGE4-RESULT-BUFFER-ON-TAB-LEAVE-IMPLEMENT 조사 중 발견, M167 해결 확인 과정의 부산물)
