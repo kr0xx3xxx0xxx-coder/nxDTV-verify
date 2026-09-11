@@ -10552,6 +10552,20 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 권장 모델: Sonnet / 추론 강도: 낮음
 - 커밋: - (기록만, 코드 변경 없음)
 - 근거: ALL-STAGES-RESULT-DB-PERSISTENCE-CHECK-DIAGNOSE-ONLY 완료보고서
+- **2026-09-11 설계조사 완료** — 소실 시점이 예상보다 더 넓음: (1)1~3단계는
+  완전 무기록(로그도 SQL 본문 없이 시작/종료 1줄뿐). (2)4단계 "부분저장"은
+  서버가 아니라 브라우저 JS가 트리거해서, 4단계 완료 전에 탭을 닫으면 이
+  안전망 자체가 발동 안 함 — 게다가 불일치 그룹만 저장되고 스코프당 최근
+  5회차 FIFO라 6번째 시도 시 가장 오래된 게 삭제됨. (3)로그 기반 대체는
+  불충분 판정 — SQL 본문이 보안원칙상 로그에 없고, 로그파일 자체는 무제한
+  증가하는데 조회 API가 20000줄 방어 상한이 있어 오래된 시도는 조회상
+  사실상 안 보이게 됨. 제안: 서버사이드(각 단계 라우트 진입시점)에 경량
+  테이블 upsert 방식, FIFO/TTL 정리 필수. 자동기록 권장(수동저장은 "이탈
+  상황"이라는 이 기능의 전제와 모순 — 사용자가 버튼 누를 기회 자체가 없는
+  경우가 대부분). **필수 전제조건**: SQL 스냅샷을 저장할 경우 반드시
+  리터럴 값 마스킹(컬럼명/구조만 보존) — 기존 "로그에 SQL 본문·데이터 값
+  미기록" 보안 원칙과 충돌 방지. 근거:
+  M361-INCOMPLETE-ATTEMPT-HISTORY-DESIGN-INVESTIGATE-ONLY_20260911.md.
 
 ### M362. 아이디어(미착수, 사용자 재검토 대기) - STAGE5-ZEROAXIS-T2-PKDETAIL-SAVE-SUPPORT-IDEA - 개별검증 5단계 GROUP BY 0축(그룹 없음) 실행 시 불일치 PK 상세목록(T2) 저장이 차단됨
 - 발견/계기: 2026-09-08, ZEROAXIS-AUTOSAVE-EXCLUSION-REAL-REASON-AND-SUMMARY-SAVE-
@@ -10572,6 +10586,22 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 권장 모델: Sonnet / 추론 강도: 낮음
 - 커밋: - (기록만, 코드 변경 없음)
 - 근거: ZEROAXIS-AUTOSAVE-EXCLUSION-REAL-REASON-AND-SUMMARY-SAVE-FEASIBILITY 완료보고서
+- **2026-09-11 실현가능성 조사 완료** — 막힌 지점은 정확히 2곳:
+  `services/individual_auto_save.py`(0축 시 group_axis 조립에서 IndexError
+  크래시, `routes/stats_result_route.py`의 `_group_identity()` 재사용으로
+  해결 가능), `services/batch_auto_save_prepare.py`(axis/value 폴백이
+  "(축 없음)" sentinel을 실제 컬럼명으로 오인해 잘못된 WHERE 절 조립 —
+  기존 백로그 경고가 실제 코드 경로로 재현 확인됨, 이 파일은 배치 경로와
+  공유되므로 수정 시 배치 회귀도 함께 검증 필요). 101건 조기중단 상한·
+  5단계 화면 렌더링은 이미 있는 메커니즘 그대로 재사용 가능(추가조정
+  불필요). 종속 관계: 이 기능이 구현되면
+  AUTOSAVE-CHECKBOX-DISABLE-WHEN-ZEROAXIS(799141da)의 0축 비활성화 로직과
+  라벨 캐비어트 문구도 함께 되돌려야 함. 종합판정: "작은~중간 규모 수정"
+  (핵심 파일 2개 + UI 되돌리기 1곳 + 0축 신규 테스트 케이스 추가 필요,
+  기존 tests/test_individual_autosave_stage4_wire.py에 0축 케이스 자체가
+  없었음도 확인). 근거:
+  BACKLOG-M293-STATUS-VERIFY-THEN-M362-FEASIBILITY-INVESTIGATE_20260911.md
+  Part B.
 
 ### M363. 아이디어(미착수) - ORPHAN-RENDER-FUNCTIONS-9-CLEANUP-CANDIDATE - ui/js_batch_phase_blocks.py 렌더 함수 9개+호출부 1개, 실 UI 진입점 없음(주석표시만, 삭제 보류)
 - 발견/계기: 2026-09-10, TABLER-RENDERER-SPLIT-PHASE1-REAL-E2E-DEEP-VERIFY(완료)가
