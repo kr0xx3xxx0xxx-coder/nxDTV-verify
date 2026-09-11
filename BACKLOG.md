@@ -10567,7 +10567,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   미기록" 보안 원칙과 충돌 방지. 근거:
   M361-INCOMPLETE-ATTEMPT-HISTORY-DESIGN-INVESTIGATE-ONLY_20260911.md.
 
-### M362. 아이디어(미착수, 사용자 재검토 대기) - STAGE5-ZEROAXIS-T2-PKDETAIL-SAVE-SUPPORT-IDEA - 개별검증 5단계 GROUP BY 0축(그룹 없음) 실행 시 불일치 PK 상세목록(T2) 저장이 차단됨
+### M362. ✅ 해결완료(2026-09-11) - STAGE5-ZEROAXIS-T2-PKDETAIL-SAVE-SUPPORT-IDEA - 개별검증 5단계 GROUP BY 0축(그룹 없음) 실행 시 불일치 PK 상세목록(T2) 저장 차단 문제, 구현+실DB검증까지 완료
 - 발견/계기: 2026-09-08, ZEROAXIS-AUTOSAVE-EXCLUSION-REAL-REASON-AND-SUMMARY-SAVE-
   FEASIBILITY(완료) 결과를 소급 등록(구현 결정 아님).
 - 개별검증 5단계에서 GROUP BY 0축(그룹 없음, "전체합계" 1행) 실행 시, 그룹 요약
@@ -10602,6 +10602,20 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   없었음도 확인). 근거:
   BACKLOG-M293-STATUS-VERIFY-THEN-M362-FEASIBILITY-INVESTIGATE_20260911.md
   Part B.
+- **2026-09-11 구현+검증 완료**: STAGE5-ZEROAXIS-T2-PKDETAIL-SAVE-IMPLEMENT(커밋
+  172d08bb)로 위 2곳 실제 수정 완료 (`routes/stats_result_route.py`의
+  `_group_identity()` 재사용으로 IndexError 해결, `batch_auto_save_prepare.py`의
+  폴백 조건을 `if not pairs`에서 `if pairs is None`으로 변경해 "(축 없음)" 오조립
+  방지). 이후 실 DB(NXDNP.MV_SCATTER50M_SRC/TGT, 원본 5천만행/목적 4,950만행)
+  수동 릴레이 검증으로 "저장됨" 배지·PK 상세목록 실제 채워짐(100건) 확인.
+  "101건 조기중단 vs 100건 저장" 의문은 T2-DETAIL-SAVE-COUNT-CAP-100-VS-101-
+  DIAGNOSE-ONLY로 설계대로 맞음 확정(off-by-one 버그 아님 — 101은 스캔중단
+  트리거, 100은 저장유지 상한, 원래부터 별개 값). 배치 공유파일
+  (`batch_auto_save_prepare.py`) 회귀 우려는 BATCH-AUTOSAVE-REGRESSION-AFTER-
+  M362-TEST-AND-DIAGNOSE로 baseline(47건)/HEAD(50건) 테스트 대조 + 코드 재확인
+  양쪽으로 회귀 없음 확정(배치는 0축 그룹 자체를 안 만들어 변경된 라인에 영향
+  없음, `pairs is None` 폴백은 현재 두 실호출부 모두 scope_pairs 키를 항상
+  채우므로 도달불가 dead code). 잔여 항목 없음.
 
 ### M363. 아이디어(미착수) - ORPHAN-RENDER-FUNCTIONS-9-CLEANUP-CANDIDATE - ui/js_batch_phase_blocks.py 렌더 함수 9개+호출부 1개, 실 UI 진입점 없음(주석표시만, 삭제 보류)
 - 발견/계기: 2026-09-10, TABLER-RENDERER-SPLIT-PHASE1-REAL-E2E-DEEP-VERIFY(완료)가
