@@ -10676,7 +10676,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   없음, `pairs is None` 폴백은 현재 두 실호출부 모두 scope_pairs 키를 항상
   채우므로 도달불가 dead code). 잔여 항목 없음.
 
-### M363. 아이디어(미착수) - ORPHAN-RENDER-FUNCTIONS-9-CLEANUP-CANDIDATE - ui/js_batch_phase_blocks.py 렌더 함수 9개+호출부 1개, 실 UI 진입점 없음(주석표시만, 삭제 보류)
+### M363. 부분 해결(그룹1 4개 삭제완료 2026-09-11, 그룹2 6개 삭제금지 유지) - ORPHAN-RENDER-FUNCTIONS-9-CLEANUP-CANDIDATE - ui/js_batch_phase_blocks.py 렌더 함수 9개+호출부 1개, 그룹1은 삭제 완료·그룹2는 재사용 가능성으로 삭제 금지 확정 유지
 - 발견/계기: 2026-09-10, TABLER-RENDERER-SPLIT-PHASE1-REAL-E2E-DEEP-VERIFY(완료)가
   발견, ORPHAN-RENDER-FUNCTIONS-COMMENT-MARK-AND-CLEANUP-LOG-DELETE에서 소급 등록.
 - 대상 함수(9개, 전부 `ui/js_batch_phase_blocks.py`): _mvRenderMismatchSummary,
@@ -10727,3 +10727,14 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   함께 고아 상태로 확인됐으나 이번 결정 범위 밖(별도 판단 필요).
 
   근거: ORPHAN-FUNCTIONS-ORIGINAL-INTENT-INVESTIGATE-ONLY_20260910.md
+
+- **2026-09-13 재확인 완료(M363-GROUP1-ORPHAN-RENDER-FUNCTIONS-DELETE)**:
+  그룹1 4개(`_mvRenderStrategyOverride`, `_mvRenderInvestigationReport`,
+  `_mvRenderMismatchSummary`, `_mvRenderIndividualResultPanel`)는 이미
+  2026-09-11 커밋 `9886546e`로 삭제 완료돼 있었음을 오늘 재grep으로
+  재확인(실 소스 정의 0건, 남은 언급은 이력설명 주석·테스트 스텁·과거
+  산출물뿐). 관련 테스트도 그때 이미 그룹1만 정확히 골라 정리돼 있었고,
+  오늘 재실행해도 통과(무관한 기존 실패 1건만 재확인, baseline 성격).
+  그룹2 6개는 전부 온전히 남아있음을 재확인 — 삭제 금지 확정 유지.
+  `strategy-override-check` 라우트는 여전히 고아 상태(참고용, 미삭제,
+  범위 밖). 그룹1 관련해서는 잔여 항목 없음.
