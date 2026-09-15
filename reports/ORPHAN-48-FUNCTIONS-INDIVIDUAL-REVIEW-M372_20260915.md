@@ -50,11 +50,11 @@ CODEBASE-WIDE-DEAD-CODE-AND-ISSUES-AUDIT(2026-09-15)에서 확인된 "완전 고
 | 19 | services/diagnosis/contracts.py:74 | DiagnosisBudget.node_budget_left | 삭제가능 | 실제삭제됨 |
 | 20 | services/diagnosis/cost_accuracy.py:136 | next_calibration_hint | 삭제가능 | 실제삭제됨 |
 | 21 | services/dialects/mssql/runner_capabilities.py:15 | MSSQLRunnerCapabilities(class) | 삭제보류 | 보류(base.py·DIALECT_POLICY.md §5에 "향후 확장용 placeholder" 명시) |
-| 22 | services/dialects/mssql_dialect.py:21 | resolve_mssql_dialect | 삭제보류 | 보류(→ M383로 구조적 정리 별도 등록) |
+| 22 | services/dialects/mssql_dialect.py:21 | resolve_mssql_dialect | 삭제보류 | 보류(→ M385로 구조적 정리 별도 등록) |
 | 23 | services/dialects/mysql/runner_capabilities.py:15 | MySQLRunnerCapabilities(class) | 삭제보류 | 보류(21과 동일 근거) |
-| 24 | services/dialects/mysql_dialect.py:21 | resolve_mysql_dialect | 삭제보류 | 보류(→ M383) |
+| 24 | services/dialects/mysql_dialect.py:21 | resolve_mysql_dialect | 삭제보류 | 보류(→ M385) |
 | 25 | services/dialects/oracle/runner_capabilities.py:16 | OracleRunnerCapabilities(class) | 삭제보류 | 보류(21과 동일 근거) |
-| 26 | services/dialects/oracle_dialect.py:21 | resolve_oracle_dialect | 삭제보류 | 보류(→ M383) |
+| 26 | services/dialects/oracle_dialect.py:21 | resolve_oracle_dialect | 삭제보류 | 보류(→ M385) |
 | 27 | services/dialects/postgresql/runner_capabilities.py:16 | PostgreSQLRunnerCapabilities(class) | 삭제보류 | 보류(21과 동일 근거, 4방언 대칭 확인) |
 | 28 | services/exact_diff/reimport_job.py:373 | clear_recover | 삭제가능 | 실제삭제됨 |
 | 29 | services/exact_diff/reimport_job.py:672 | status_dict | 삭제가능 | 실제삭제됨 |
@@ -96,7 +96,7 @@ CODEBASE-WIDE-DEAD-CODE-AND-ISSUES-AUDIT(2026-09-15)에서 확인된 "완전 고
   근거로 보류. 조사 중 postgresql까지 포함해 4개 방언이 완전 대칭으로
   고아 상태(감사의 postgresql 제외는 docstring 텍스트 매치로 인한 오판)
   이고, `{d}_dialect.py` 4개 shim 파일 자체가 통째로 미사용임을 확인해
-  별도 구조적 정리 항목(M383)으로 등록했다(함수 단위 삭제 시 postgresql만
+  별도 구조적 정리 항목(M385)으로 등록했다(함수 단위 삭제 시 postgresql만
   남는 비대칭이 생기므로 이번 범위에서는 보류).
 - **그룹4(8건, 8삭제/0보류)**: exact_diff 3개 파일은 M364/M377 이후에도
   모듈 자체(stream_merge.merge_compare, reimport_job.begin_recover 등)는
@@ -107,7 +107,7 @@ CODEBASE-WIDE-DEAD-CODE-AND-ISSUES-AUDIT(2026-09-15)에서 확인된 "완전 고
 - **그룹6(9건, 6삭제/3보류)**: 42·43·46번은 전부 "미배선 공개 API"
   성격(설계문서 스펙 대기 / 2일 전 신설 모듈 / 형제 관례)으로 보류.
   41번 삭제로 2차 고아가 된 `validate_parsed_sql()`(~350줄)은 이번
-  지정 48건 범위를 벗어나 손대지 않고 M384로 별도 등록.
+  지정 48건 범위를 벗어나 손대지 않고 M386으로 별도 등록.
 
 ### 코드 저장소 변경 (커밋 c2540431, 27개 파일, 579줄 삭제/3줄 추가)
 ```
@@ -163,8 +163,8 @@ git show --stat c2540431
 - M372: 아이디어(미착수) → **✅ 해결 완료**로 갱신(48건 전부 개별 판단
   완료했으므로 부분 해결이 아님 — 14건 보류는 "미처리"가 아니라 근거
   있는 명시적 유지 결정).
-- 신규 등록: **M383**(dialect shim 4파일 구조적 삭제 필요, 아이디어/
-  미착수), **M384**(M372로 파생된 2차 고아 3건 — validate_parsed_sql
+- 신규 등록: **M385**(dialect shim 4파일 구조적 삭제 필요, 아이디어/
+  미착수), **M386**(M372로 파생된 2차 고아 3건 — validate_parsed_sql
   ~350줄 + 미사용 상수 2건, 아이디어/미착수).
 
 ## 검증 결과
@@ -216,7 +216,7 @@ git show --stat c2540431
 - 14건 보류는 전부 근거가 코드/커밋/보고서에 남아, 다음 세션이 같은
   조사를 반복하지 않도록 했다.
 - 그룹3·그룹6 조사 과정에서 이번 범위 밖의 구조적 문제(dialect shim
-  파일 전체 사장, 2차 고아 ~350줄)를 추가로 발견해 M383/M384로 등록,
+  파일 전체 사장, 2차 고아 ~350줄)를 추가로 발견해 M385/M386으로 등록,
   후속 지침의 출발점을 명확히 했다.
 
 작업명 : ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW-M372
