@@ -10920,17 +10920,25 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: BATCH-STATS-EXECUTE-SERVICE-VS-SHARED-FACADE-ARCHITECTURE-
   VERIFY_20260915.md
 
-### M381. 아이디어(미착수) - UNSORTED-CHUNK-PK-LOOKUP-PROGRESS-CB-REGRESSION-TEST-MISSING - `run_unsorted_chunk_pk_lookup_compare`의 progress_cb 단조증가/basis 초기화 자체 회귀 테스트 부재
+### M381. ✅ 해결 완료 - UNSORTED-CHUNK-PK-LOOKUP-PROGRESS-CB-REGRESSION-TEST-MISSING - `run_unsorted_chunk_pk_lookup_compare`의 progress_cb 단조증가/basis 초기화 자체 회귀 테스트 부재
 - MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL(M364)로 불일치 레코드
   추출이 `run_unsorted_chunk_pk_lookup_compare` 하나로 단일화됐으나, 이
   엔진의 progress_cb 단조증가(진행률이 역행하지 않음)·basis 초기화
   동작 자체를 검증하는 회귀 테스트가 없다(과거 chunk 엔진 쪽 progress
   테스트는 M364 삭제 대상에 포함돼 제거됨, 동등 대체 테스트 미작성 —
   커버리지 공백으로 완료보고에만 명시됐던 항목).
+- [해결, 2026-09-15] UNSORTED-CHUNK-PK-LOOKUP-COVERAGE-GAPS-M381-M382 파트A로
+  tests/test_unsorted_chunk_progress_basis.py 신설(3개 테스트) —
+  progress_cb 가 배치마다 정확히 1회 호출되고 processed_src/available 이
+  단조증가하며 마지막 호출값이 최종 반환값과 일치함을 검증, basis 가
+  set_basis 시점부터 source_count/target_count/gb_cols/sum_labels/
+  target_only 계약대로 초기화됨을 검증. processed_src 를 일부러 0으로
+  고정해 테스트가 실제로 실패하는지 확인 후 원복 — 탐지력 실측 완료.
 - 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md,
-  MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md
+  MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md,
+  UNSORTED-CHUNK-PK-LOOKUP-COVERAGE-GAPS-M381-M382_20260915.md
 
-### M382. 아이디어(미착수) - UNSORTED-CHUNK-PK-LOOKUP-TRACEMALLOC-NOT-WIRED - `run_unsorted_chunk_pk_lookup_compare` 엔진에 tracemalloc 계측이 애초에 배선돼 있지 않음(DIRECT_STREAM 엔진만 계측됨)
+### M382. ✅ 해결 완료 - UNSORTED-CHUNK-PK-LOOKUP-TRACEMALLOC-NOT-WIRED - `run_unsorted_chunk_pk_lookup_compare` 엔진에 tracemalloc 계측이 애초에 배선돼 있지 않음(DIRECT_STREAM 엔진만 계측됨)
 - M364로 유일 생존 엔진이 된 `run_unsorted_chunk_pk_lookup_compare`에는
   tracemalloc 메모리 계측이 처음부터 배선돼 있지 않다 — 현재
   DIRECT_STREAM_COMPARE 엔진만 계측 대상이라, 메모리 관련 이상(대량
@@ -10938,5 +10946,16 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   탐지할 수 없다. tests/test_tracemalloc_toggle_wiring.py도 M364에서
   chunk 절반만 제거되고 DIRECT_STREAM 절반만 남아 이 공백을 커버하지
   않는다.
+- [해결, 2026-09-15] UNSORTED-CHUNK-PK-LOOKUP-COVERAGE-GAPS-M381-M382 파트B로
+  DIRECT_STREAM 엔진(agg_contribution.prepare_reimport_pk_index_stream)의
+  TRACEMALLOC-ALWAYS-ON-COST-REDUCTION 계측 토글 패턴을 그대로 적용 —
+  pk_range_chunk.run_unsorted_chunk_pk_lookup_compare 에
+  is_memory_profiling_enabled() 기반 start/stop·metrics.peak_python_mb
+  필드를 배선(기존 finally 블록 재사용 — 정상 완주·cancel_check break·
+  예외 전파 세 경로 공통 커버). tests/test_tracemalloc_toggle_wiring.py의
+  3개 테스트(OFF 미시작/ON 계측/토글 무관 판정 동일)를 이 엔진 기준으로도
+  확장해 실측(계측 ON 시 peak_python_mb > 0 확인) — 억지 강행 없이 그대로
+  적용 가능했음.
 - 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md,
-  MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md
+  MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md,
+  UNSORTED-CHUNK-PK-LOOKUP-COVERAGE-GAPS-M381-M382_20260915.md
