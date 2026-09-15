@@ -10801,7 +10801,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   트레이드오프 판단 필요.
 - 근거: DB-EXTRACTION-AND-PERFORMANCE-WIDE-AUDIT_20260915.md
 
-### M371. 조사완료(승격 - 우선순위 중) - NON-PG-CONNECTION-POOLING-GAP - PostgreSQL 외 DBMS(Oracle/MySQL/MSSQL) 커넥션 풀링 미지원 - 배치 공식 병렬 경로에서 row당 신규 연결 반복 확인, "조치 불필요"로 확정 불가
+### M371. ✅ 해결 완료(2026-09-15, Oracle/MSSQL만 · MySQL/MariaDB는 별도 잔여 M383) - NON-PG-CONNECTION-POOLING-GAP - PostgreSQL 외 DBMS(Oracle/MySQL/MSSQL) 커넥션 풀링 미지원 - 배치 공식 병렬 경로에서 row당 신규 연결 반복 확인, "조치 불필요"로 확정 불가
 - 재조사 결론(NON-PG-CONNECTION-POOLING-GAP-CONFIRM-M371 지침): "문서화된 의도적
   기술부채"라는 원 문구는 맞지만, 그 "의도"는 드라이버 기술적 한계가 아니라 최초
   구현(2026-06-24, 커밋 c1fa7fe2 `perf: reuse database connections across
@@ -10836,6 +10836,23 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   ("중")를 그대로 유지하되, "조치 불필요"였던 판정만 정정한다.
 - 근거: DB-EXTRACTION-AND-PERFORMANCE-WIDE-AUDIT_20260915.md,
   NON-PG-CONNECTION-POOLING-GAP-CONFIRM-M371_20260915.md(재조사 완료보고서)
+- **[2026-09-15 갱신]** NON-PG-CONNECTION-POOLING-ORACLE-MSSQL-EXTEND-M371 로 Oracle/MSSQL
+  범위 해결. `services/connection_pool.py` 의 `_is_pg` 를 `_is_pooled_dbms` 로 일반화해
+  PostgreSQL/Oracle/MSSQL 을 동일 원칙(POOL_MAX_IDLE_PER_KEY=4, lifetime 300s, idle
+  timeout 120s — 신규 정책 도입 없이 기존 상수 재사용)으로 풀링한다. 새 cleanup 로직은
+  불필요했다 — checkout 마다 이미 적용되던 autocommit/apply_query_timeout 재설정이
+  DBMS 중립이고, Oracle 세션 NLS 고정(ALTER SESSION)·outputtypehandler 는 물리 연결(=세션)
+  생성 1회만 적용하면 재사용 전체에 유효함(DRCP 아님 — 같은 물리 커넥션 객체를 재사용할
+  뿐 서버측 세션을 새로 만들지 않음). 라이브 Oracle_asis(192.168.0.151:1523) 실측: 순차
+  5회 checkout/return → 물리연결 1회·재사용 4회, request_connection_scope 스레드 병렬
+  (동시성 3, row 6개) → 물리연결 3회·재사용 3회(테이블 수보다 적은 연결 생성 확인).
+  PostgreSQL(Neon) 기존 경로 무회귀 확인. **MSSQL은 코드는 동일하게 확장했으나 실 인스턴스·
+  pyodbc/ODBC 드라이버 미가용으로 라이브 E2E 는 수행하지 못했다**(단위테스트 fake 연결로
+  대체 검증 — 실검증 상태 아님, MSSQL 실 인스턴스 확보 시 재검증 권장). **MySQL/MariaDB
+  는 이번 범위 밖(HOLD 유지) — connect() 자체가 미구현이라는 별개 발견은 M383 으로 신규
+  등록**(F23 잔여 노트와 동일 사실, 가시성을 위해 별도 open 항목으로도 등록).
+  코드 커밋: `fb9d9d93`(nxDTV-src). 근거:
+  G:\내 드라이브\nxDTV-verify\reports\NON-PG-CONNECTION-POOLING-ORACLE-MSSQL-EXTEND-M371_20260915.md
 
 ### M372. 아이디어(미착수) - ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW - CODEBASE-WIDE 감사에서 확인된 고아 함수 48건(호출부 없음) 삭제 여부 개별 판단 필요
 - CODEBASE-WIDE 감사에서 확인된 고아 함수 48건(호출부 없음) 삭제 여부
@@ -10959,3 +10976,23 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md,
   MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md,
   UNSORTED-CHUNK-PK-LOOKUP-COVERAGE-GAPS-M381-M382_20260915.md
+
+### M383. 아이디어(미착수) - MYSQL-MARIADB-CONNECT-NOT-IMPLEMENTED - MySQL/MariaDB 어댑터에 connect() 자체가 구현돼 있지 않아 라이브 쿼리 실행(COUNT/통계검증/커넥션 풀링 포함)이 전부 불가능
+- NON-PG-CONNECTION-POOLING-ORACLE-MSSQL-EXTEND-M371 작업(Oracle/MSSQL
+  커넥션 풀링 확장) 도중 재확인 — `services/db_adapters/mysql.py`,
+  `mariadb.py` 어댑터 모두 `connect()` override 가 없어
+  `BaseDbmsAdapter.connect()` 기본 구현(`RuntimeError("connect 미지원")`)
+  으로 떨어진다. Oracle(`oracledb`)/MSSQL(`pyodbc`)은 이미 실 DSN
+  connect() 가 구현돼 있는 것과 대비된다 — MySQL/MariaDB 는 커넥션
+  풀링 이전에 **라이브 접속 자체가 코드베이스에 없다**(COUNT/통계검증/
+  실행 경로 전부 이 지점에서 막힘). 이번 M371 은 지침 범위상 명시적으로
+  손대지 말라고 지정되어 조치하지 않았다.
+- 사실관계는 F23(2026-08-06 갱신, 해결완료 상태) 잔여 노트에 이미
+  기록돼 있으나, F23 은 "키메타 조회" 항목이 주제라 이 사실이 묻혀
+  보이기 쉽다 — 별도 open 항목으로도 등록해 가시성을 높인다(중복
+  조사 아님, F23 과 동일 사실의 재등록).
+- 대응 방향: `db_connection_service._test_mysql`/`_test_mariadb`(연결
+  테스트 로직 존재 여부 확인 필요) 또는 신규 pymysql/mariadb-connector
+  기반 `connect()` 를 오라클/MSSQL 어댑터와 동일한 인터페이스로 이식.
+- 근거: NON-PG-CONNECTION-POOLING-ORACLE-MSSQL-EXTEND-M371_20260915.md,
+  F23(IS-PK-FIXED-VALUE-CANDIDATE-RECOMMENDATION-FIX.txt §11-R3/§8)
