@@ -10739,7 +10739,29 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   `strategy-override-check` 라우트는 여전히 고아 상태(참고용, 미삭제,
   범위 밖). 그룹1 관련해서는 잔여 항목 없음.
 
-### M364. 결정됨(사용자 확정, 착수 대기) - PK-RANGE-CHUNK-CONDITIONAL-AUTO-SELECT-REVIVE → MERGE-WALK-PERMANENT-REMOVAL로 방향 전환 - merge-walk(run_pk_range_chunk_compare) 부활은 2026-08-30 안전우선 결정을 되돌리는 것과 같아 파트A 검증에서 중단됨(근거: PK-RANGE-CHUNK-CONDITIONAL-AUTO-SELECT-REVIVE-M364_20260915.md) → 사용자가 부활 대신 완전 폐기(코드 삭제)로 최종 결정. 실행 지침: directives/MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL.md(작성 완료, 미착수). 착수 시 M374(exact_diff_full.py 문서 낡음)도 함께 해소됨.
+### M364. ✅ 결정됨(사용자 확정) — merge-walk 완전 폐기, unsorted-lookup 단일화 - MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL 지침으로 실제 삭제 완료(2026-09-15)
+- run_pk_range_chunk_compare/_run_pk_range_chunk(merge-walk 실 엔진, 이미
+  2026-08-30 REPLACE-MERGEWALK-WITH-UNSORTED-ENGINE-UNCONDITIONAL 이후
+  어떤 라우트도 호출하지 않던 죽은 코드였음을 grep으로 재확인)와 전용
+  헬퍼(merge_chunk·_ensure_pk_ascending·_pk_order_violations·
+  evaluate_chunk_plan_guard·_rec_target_only·_rec_repr_advisory·
+  evaluate_unsorted_chunk_pk_lookup_gate·get_chunk_fetch_adapter 등)를
+  services/exact_diff/pk_range_chunk.py·routes/agg_diff_route.py에서
+  완전 삭제. routes/agg_diff_route.py의 "_run_pk_range_chunk 재개 검사"
+  불필요 분기(req.compare_strategy가 그 직전 줄에서 ""로 고정돼 있어
+  구조적으로 도달 불가능하던 코드)도 함께 정리. 불일치 레코드 추출은
+  run_unsorted_chunk_pk_lookup_compare 하나로만 간다(조건부 게이트 없음).
+  select_deterministic_rep_axis는 최초 삭제 범위 판단 실수로 지웠다가,
+  DIRECT 경로(routes/agg_diff_route._select_direct_rep_axis)가 지금도
+  위임 호출하는 살아있는 공유 로직임을 최종 grep 검증에서 발견해 복구함
+  (M10-REPRESENTATIVE-AXIS-RULE-REBIND-UNIFY-FIX 계약 유지). 관련 테스트
+  정리(전용 파일 6개 삭제 + 13개 파일 부분 정리, 조건부 게이트 삭제로
+  tests/test_unsorted_chunk_pk_lookup.py 1개 테스트 추가 정리). 검증:
+  samples 전체(8+5케이스) 무회귀, pytest 관련 95건 통과(pre-existing
+  무관 실패 29건은 worktree 기준선 대조로 무관함 확인), 서버 부팅(임시
+  8020) 무오류, run_unsorted_chunk_pk_lookup_compare 기반 5단계 그룹
+  드릴다운(scope_col/scope_val 조회) 실동작 확인.
+- 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md
 
 ### M365. 아이디어(미착수) - NATIVE-PK-FANOUT-PROBE-TIMEOUT-DISCREPANCY-INVESTIGATE - `_native_pk_fanout_present`가 문서화된 8초 타임아웃에도 실측 61~92초가 걸린 원인 미확정
 - `_native_pk_fanout_present`가 문서화된 8초 타임아웃에도 실측 61~92초가
@@ -10827,11 +10849,14 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: SILENT-EXCEPTION-172-CASES-CATEGORIZE-AND-SAFE-DOCUMENT_20260915.md
   (전체 목록 첨부)
 
-### M374. 참고(문서 정합성) - EXACT-DIFF-FULL-STALE-DOCSTRING - `services/diagnosis/exact_diff_full.py` 문서 주석이 현재 dispatch(무조건 UNSORTED)와 어긋나는 옛 설명을 담고 있음
-- `services/diagnosis/exact_diff_full.py`의 문서 주석이 "PK_RANGE_
-  CHUNK_COMPARE가 크기 기반으로 선택될 수 있다"는 옛 설명을 그대로 담고
-  있어 현재 dispatch(무조건 UNSORTED)와 어긋남 — 문구만 정정 필요.
-- 근거: PK-RANGE-CHUNK-VS-UNSORTED-CHUNK-DUPLICATE-OR-DISTINCT-CHECK-ONLY_20260915.md
+### M374. ✅ 해결 완료 - EXACT-DIFF-FULL-STALE-DOCSTRING - `services/diagnosis/exact_diff_full.py` 문서 주석을 현재 dispatch(무조건 UNSORTED)와 일치하도록 정정(2026-09-15)
+- `services/diagnosis/exact_diff_full.py`의 "PK_RANGE_CHUNK_COMPARE가
+  크기 기반으로 선택될 수 있다"는 옛 설명 2곳(파이프라인 다이어그램
+  주석 + stream 분기 주석)을 "merge-walk(DIRECT_STREAM_COMPARE·
+  PK_RANGE_CHUNK_COMPARE) 완전 폐기 이후 조건 분기 없이 항상
+  UNSORTED_CHUNK_PK_LOOKUP"으로 정정 — M364(merge-walk 완전 삭제)와
+  같은 작업으로 해소.
+- 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md
 
 ### M375. 참고(문서 정합성) - CLAUDE-MD-OPENPYXL-MISSING-FROM-EXCEPTION-LIST - `openpyxl`이 실사용/고정의존성인데 CLAUDE.md 외부 패키지 예외 목록에서 누락됨
 - `openpyxl`이 실사용/고정의존성인데 CLAUDE.md의 외부 패키지 예외 목록
@@ -10843,3 +10868,16 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   배치 내 row가 전부 동일 시각을 가짐(row별 실제 실행 시각 아님) — 오늘
   요구사항(초단위 여부)과 별개 이슈로 분리됨.
 - 근거: EXECUTION-TIME-REUSE-WITH-TIMESTAMP-AND-FORCE-OVERRIDE-DESIGN_20260915.md
+
+### M377. 참고(범위 밖 고아 모듈) - CHUNK-PUSHDOWN-MODULE-ORPHANED-AFTER-MERGEWALK-REMOVAL - `services/exact_diff/chunk_pushdown.py`의 유일한 소비처(evaluate_chunk_plan_guard)가 M364 삭제로 사라져 프로덕션 호출부 0건이 됨
+- MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL(M364) 작업 중 확인 —
+  `services/exact_diff/chunk_pushdown.py`(analyze_chunk_pushdown, SQL
+  pushdown 가능성 정적 분석기)는 merge-walk 엔진의
+  evaluate_chunk_plan_guard(P1 사전 판정)가 유일한 실 호출부였다. 그
+  엔진이 삭제되며 이 모듈은 프로덕션 호출부가 0건인 고아 모듈이 됐다.
+  directives/MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL.md 지침
+  범위가 pk_range_chunk.py·agg_diff_route.py에 한정돼 이 모듈 자체는
+  삭제하지 않고 남겼다(tests/test_pk_range_chunk_pushdown_and_imbalance.py
+  의 파트A 5개 테스트는 이 모듈을 직접 테스트하므로 그대로 유지).
+  삭제 여부는 별도 판단 필요.
+- 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md
