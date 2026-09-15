@@ -10837,10 +10837,24 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: DB-EXTRACTION-AND-PERFORMANCE-WIDE-AUDIT_20260915.md,
   NON-PG-CONNECTION-POOLING-GAP-CONFIRM-M371_20260915.md(재조사 완료보고서)
 
-### M372. 아이디어(미착수) - ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW - CODEBASE-WIDE 감사에서 확인된 고아 함수 48건(호출부 없음) 삭제 여부 개별 판단 필요
-- CODEBASE-WIDE 감사에서 확인된 고아 함수 48건(호출부 없음) 삭제 여부
-  개별 판단 필요 — 일괄 처리 금지, 하나씩 검토.
-- 근거: CODEBASE-WIDE-DEAD-CODE-AND-ISSUES-AUDIT_20260915.md(첨부 목록 참고)
+### M372. ✅ 해결 완료(2026-09-15) - ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW - 완전 고아 함수 48건 전부 개별 판단 완료(삭제가능 34건 실삭제 / 삭제보류 14건(근거와 함께 유지) / 오판정 0건). 코드 저장소 커밋 c2540431. 근거: ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW-M372_20260915.md
+- SILENT-EXCEPTION-12B-16C-FOLLOWUP(M373)와 동일 방법론(파일 그룹 6개로
+  나눠 병렬 서브에이전트가 각자 최신 코드 기준 재확인 후 건별 판단, 일괄
+  삭제 금지)으로 처리. 감사 당시 스냅샷 이후 바뀐 호출관계(merge-walk
+  삭제 M364, chunk_pushdown 삭제 M377 등)까지 반영해 처음부터 재검증.
+- 삭제보류 14건은 전부 근거가 있어 유지: 향후 배선 예정 명시 3건
+  (batch_auto_save_store.run_within_time_cap, ui_settings_service.
+  ensure_ui_settings_table, validation_policy_service.
+  ensure_validation_policy_table), 대칭 helper 패밀리 1건
+  (scope_guard_response.guard_batch — 형제 4개 실사용 중), 진단
+  escape hatch 1건(sqlglot_safe_parse.clear_timeout_cache), 미실행
+  이관단계 전용 1건(db_paths.legacy_data_dir), 설계문서 Phase 4-A
+  스펙 함수 1건(strategy_models.resource_weight_for), dialects 관련
+  4개 방언 대칭 클래스/shim 함수 7건(19번째 줄 별도 M383 참고).
+- 신규 발견 2건을 별도 항목으로 등록(M383, M384) — 이번 지침 범위(함수
+  단위 개별 삭제)를 넘는 구조적 정리가 필요해 미착수 상태로 남김.
+- 근거: ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW-M372_20260915.md(전체
+  48건 분류표·git diff·회귀 결과 포함)
 
 ### M373. ✅ 해결 완료(2026-09-15) - SILENT-EXCEPTION-12B-16C-FOLLOWUP - 172건 중 남아있던 (B)의심 12건/(C)위험 16건 개별 처리 완료(로그 15건 추가 + 실제 버그 1건 수정 — result_persistence_facade.py의 resume_refs pydantic 필드 누락으로 RETRY_CLAIMED 재시도 시 중복저장 방지가 100% 무력화되던 결함). 커밋 bdac4c2f(파트B)/5e8bf798(파트C)/a83b578c(정리). 근거: SILENT-EXCEPTION-12B-16C-FOLLOWUP-M373_20260915.md
 
@@ -10959,3 +10973,48 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md,
   MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md,
   UNSORTED-CHUNK-PK-LOOKUP-COVERAGE-GAPS-M381-M382_20260915.md
+
+### M383. 아이디어(미착수) - DIALECT-SHIM-FILES-FULLY-DEAD-STRUCTURAL-REMOVAL - `services/dialects/{postgresql,oracle,mysql,mssql}_dialect.py` 4개 shim 파일이 통째로 사장 상태(모듈 import 0건)
+- M372(고아 함수 48건 개별 검토) 그룹3 조사 중 발견. `resolve_{oracle,
+  mysql,mssql}_dialect()` 3개가 이번 48건 목록에 있었으나, 실제로는
+  postgresql까지 포함해 4개 dialect 전부 완전 대칭으로 고아 상태임을
+  확인(감사가 postgresql만 목록에서 뺀 것은 오판 — 같은 파일 docstring에
+  함수명이 텍스트로 언급된 것을 토큰스캔이 "참조 있음"으로 오인).
+  더 나아가 `{postgresql,oracle,mysql,mssql}_dialect.py` 4개 파일
+  자체가 `_DIALECT`/`CANONICAL`/`normalize_*_alias`/`resolve_*_dialect`
+  로만 구성되는데, 저장소 어디서도 이 4개 모듈을 import하지 않는다
+  (모듈 import 0건, 심볼 참조 0건). 파일 헤더의 "[DEPRECATED 예정 —
+  호환 shim], 기존 import를 깨지 않기 위해 유지"라는 문구가 가리키는
+  "지켜줄 기존 import"가 이미 존재하지 않는 상태.
+- `RunnerCapabilities` 4개 클래스(`{MSSQL,MySQL,Oracle,PostgreSQL}
+  RunnerCapabilities`)는 별개 사안 — 같은 패키지 `services/dialects/
+  base.py`와 `docs/DIALECT_POLICY.md` §5가 "향후 이관 runner 확장용
+  placeholder, 현재 미사용"으로 명시 문서화해 둔 것이라 삭제 대상 아님
+  (M372에서 삭제보류로 유지 확정). 이 항목(M383)은 shim **파일** 자체의
+  구조적 삭제만 대상으로 함.
+- 함수 단위 삭제(원 M372 지침 범위)로는 postgresql만 남는 비대칭이
+  생기거나, 지워도 여전히 죽은 파일이 남는 반쪽 조치가 되므로 별도
+  지침에서 파일 통삭제 + `docs/DIALECT_POLICY.md` 60~69행 구조도의
+  "[DEPRECATED 예정 — 호환 shim]" 블록 정리를 함께 진행해야 함(같은
+  패턴이나 실제 import 사용처가 있는 `services/dialect_resolver.py`는
+  대상 아님 — 혼동 주의).
+- 근거: ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW-M372_20260915.md(그룹3
+  상세 조사 결과)
+
+### M384. 아이디어(미착수) - M372-SECONDARY-ORPHANS-CLEANUP - M372 삭제 작업으로 파생된 2차 고아 코드 잔존(함수 1건 ~350줄 + 미사용 상수 2건)
+- M372 그룹6에서 `services/sql_validation_service.py`의
+  `validate_insert_select_sql`을 삭제한 결과, 그 함수의 유일한 호출부
+  였던 `validate_parsed_sql()`(약 350줄, 하위 헬퍼 `_ok_result()`/
+  `_func_example()` 포함)이 새로 호출부 0건이 됐다. 삭제 전부터 이미
+  유일 호출부가 1곳뿐이었고 테스트도 없었던 함수라 M372 원 감사에는
+  "참조 1건"으로 잡혀 고아 목록에서 빠져 있었음(2차 고아).
+- M372 그룹4에서도 부수적으로 2건 확인: `services/exact_diff/
+  sampling_preflight.py`의 `_NUMERIC_PK_TYPES` 상수(`is_numeric_pk_type`
+  삭제로 유일 사용처 소멸)와, `services/diagnosis/cost_accuracy.py`의
+  `R_HOLD_UNEXPECTED` 상수(원래부터 미사용, M372와 무관하게 발견).
+- 셋 다 이번 M372 지침 범위(지정 48건 + 그로 인해 즉시 불필요해진
+  import)를 넘는 2차 정리라 손대지 않고 기록만 남김. 별도 지침에서
+  일반적인 고아 코드 스캔을 한 번 더 돌리거나, 위 3건을 직접 개별
+  판단하면 됨.
+- 근거: ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW-M372_20260915.md(그룹4·
+  그룹6 특이사항)
