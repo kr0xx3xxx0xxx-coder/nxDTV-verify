@@ -10872,6 +10872,9 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   단위 개별 삭제)를 넘는 구조적 정리가 필요해 미착수 상태로 남김.
 - 근거: ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW-M372_20260915.md(전체
   48건 분류표·git diff·회귀 결과 포함)
+- ※ 실행 커밋(c2540431) 메시지의 수치(22/19/7)는 오류 — 실제는 34건
+  삭제/14건 잔존(근거: FULL-CODEBASE-SECOND-PASS-AUDIT-ALL-EXISTING-
+  SOURCE_20260916.md).
 
 ### M373. ✅ 해결 완료(2026-09-15) - SILENT-EXCEPTION-12B-16C-FOLLOWUP - 172건 중 남아있던 (B)의심 12건/(C)위험 16건 개별 처리 완료(로그 15건 추가 + 실제 버그 1건 수정 — result_persistence_facade.py의 resume_refs pydantic 필드 누락으로 RETRY_CLAIMED 재시도 시 중복저장 방지가 100% 무력화되던 결함). 커밋 bdac4c2f(파트B)/5e8bf798(파트C)/a83b578c(정리). 근거: SILENT-EXCEPTION-12B-16C-FOLLOWUP-M373_20260915.md
 
@@ -11066,7 +11069,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW-M372_20260915.md(그룹3
   상세 조사 결과)
 
-### M386. 아이디어(미착수) - M372-SECONDARY-ORPHANS-CLEANUP - M372 삭제 작업으로 파생된 2차 고아 코드 잔존(함수 1건 ~350줄 + 미사용 상수 2건)
+### M386. 부분 해결(함수 1건 삭제완료 2026-09-16, 상수 2건 미착수 유지) - M372-SECONDARY-ORPHANS-CLEANUP - M372 삭제 작업으로 파생된 2차 고아 코드 잔존(함수 1건 ~350줄 + 미사용 상수 2건)
 - M372 그룹6에서 `services/sql_validation_service.py`의
   `validate_insert_select_sql`을 삭제한 결과, 그 함수의 유일한 호출부
   였던 `validate_parsed_sql()`(약 350줄, 하위 헬퍼 `_ok_result()`/
@@ -11083,3 +11086,46 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   판단하면 됨.
 - 근거: ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW-M372_20260915.md(그룹4·
   그룹6 특이사항)
+- (2026-09-16 갱신, M387) 첫 번째 항목(`validate_parsed_sql()`/
+  `_ok_result()`)은 SECOND-PASS-AUDIT-PRIORITY-FIX-M373-REMAINING
+  파트B에서 참조 0건 재확인 후 삭제 완료(`_func_example()`은 이 backlog
+  원문 설명과 달리 실제로는 `validate_parsed_sql`의 하위 헬퍼가 아니라
+  `_check_functions()`(현재도 테스트에서 실사용 중)의 하위 헬퍼여서
+  삭제 대상에서 제외 — 그대로 유지). 나머지 상수 2건
+  (`_NUMERIC_PK_TYPES`, `R_HOLD_UNEXPECTED`)은 이번 지침 범위 밖이라
+  미착수로 유지.
+- 근거 추가: SECOND-PASS-AUDIT-PRIORITY-FIX-M373-REMAINING_20260916.md
+
+### M387. ✅ 해결 완료(2026-09-16) - SECOND-PASS-AUDIT-PRIORITY-FIX-M373-REMAINING - M372/M373 잔여 처리 및 정정 완료(파트A: 무주석 예외 10건 개별 처리/파트B: 신규 고아 함수 3건 삭제/파트C: M372 커밋 메시지 수치 오류 기록 정정)
+- 배경: FULL-CODEBASE-SECOND-PASS-AUDIT-ALL-EXISTING-SOURCE에서 확인된
+  우선순위 높음 3건(SILENT-EXCEPTION-12B-16C-FOLLOWUP-M373의 "172건
+  전부 처리" 보고가 실제로는 미처리 9건을 남겼던 것 + 신규 고아 함수
+  3건 + M372 커밋 메시지 수치 오류)을 처리.
+- 파트A: SILENT-EXCEPTION-12B-16C-FOLLOWUP-M373가 미처리로 남긴 9건
+  (지침 표기는 "10건"이었으나 실제 나열 항목은 9건 — 이 수치 불일치
+  자체도 함께 기록) + 오늘 신규 발생 1건(services/batch_stats_execute_
+  service.py, M378 배선분) 총 10건을 개별 판단(A 안전 6건: 주석만,
+  B 의심 3건: 로그 추가, 특수 1건: services/count_precheck_service.py
+  target_validation_json 파싱이 source_validation_json 쪽(C-095에서
+  이미 fail-closed로 수정됨)과 비대칭으로 fail-open 이었던 실결함 —
+  C-095와 동일하게 대칭 완성)으로 처리. 강제 예외 재현으로 대칭 수정
+  전/후 차이(손상 target_validation_json row 가 allowed→blocked 전환)
+  확인.
+- 파트B: `services/sql_validation_service.py`의 `_ok_result`/
+  `validate_parsed_sql`(M386 첫 항목과 동일), `routes/agg_diff_route.py`
+  의 `_table_key` 총 3건을 grep 재확인(참조 0건) 후 삭제. `validate_
+  parsed_sql` 삭제로 새로 고아가 된 `_extract_alias_col_refs`는 이번
+  지침 범위 밖이라 손대지 않고 기록만 남김(별도 후속 필요).
+- 파트C: M372 backlog 항목(위 10857행)은 이미 정확한 수치(34/14)였으나,
+  실행 커밋 c2540431의 커밋 메시지 자체는 다른 수치(22/19/7)를 쓰고
+  있어 혼동 소지 — 커밋 메시지는 이력 변조 금지 원칙상 재작성하지
+  않고, backlog M372 항목에 정정 각주만 추가.
+- 검증: samples/test_virtual_cases.py(8/8), samples/test_complex_cases.py
+  (5/5) 통과. 관련 pytest(count_precheck 4파일, insert_select_validation,
+  sql_function_validation, chunk_checkpoint) 통과 — 실패로 남은 항목은
+  모두 worktree 로 이번 변경 이전 HEAD(c3aa01c5)와 대조해 기존
+  환경/사전 실패(node 미설치, UNION_NOT_SUPPORTED 4건)로 확인, 신규
+  회귀 없음.
+- 코드 저장소 커밋: b554ba63(파트A), 17426deb(파트B).
+- 근거: SECOND-PASS-AUDIT-PRIORITY-FIX-M373-REMAINING_20260916.md,
+  FULL-CODEBASE-SECOND-PASS-AUDIT-ALL-EXISTING-SOURCE_20260916.md
