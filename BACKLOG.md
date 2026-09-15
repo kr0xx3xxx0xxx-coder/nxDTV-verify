@@ -10738,3 +10738,81 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   그룹2 6개는 전부 온전히 남아있음을 재확인 — 삭제 금지 확정 유지.
   `strategy-override-check` 라우트는 여전히 고아 상태(참고용, 미삭제,
   범위 밖). 그룹1 관련해서는 잔여 항목 없음.
+
+### M364. 아이디어(미착수) - PK-RANGE-CHUNK-CONDITIONAL-AUTO-SELECT-REVIVE - 숫자PK+인덱스 확인 시 merge-walk(2.26배 빠름)로 자동 전환하는 기존 부품이 dead code 상태, 재배선 시 대용량 표준케이스 체감속도 개선 가능
+- 숫자PK+인덱스 확인 시 merge-walk(2.26배 빠름)로 자동 전환하는 기존 부품
+  (group_column_index_service.py + evaluate_unsorted_chunk_pk_lookup_gate)이
+  dead code 상태 — 현재 dispatch 구조와 정합성 재검증 후 재배선하면 대용량
+  표준케이스 체감속도 개선 가능.
+- 근거: PK-RANGE-CHUNK-HANG-ROOT-CAUSE-FIXABILITY-CHECK-ONLY_20260915.md
+
+### M365. 아이디어(미착수) - NATIVE-PK-FANOUT-PROBE-TIMEOUT-DISCREPANCY-INVESTIGATE - `_native_pk_fanout_present`가 문서화된 8초 타임아웃에도 실측 61~92초가 걸린 원인 미확정
+- `_native_pk_fanout_present`가 문서화된 8초 타임아웃에도 실측 61~92초가
+  걸린 원인 미확정(추론만 있음, Oracle call_timeout이 단일 풀스캔 쿼리에서
+  실효성이 없을 가능성) — 별도 재현·계측 필요.
+- 근거: PK-RANGE-CHUNK-HANG-ROOT-CAUSE-FIXABILITY-CHECK-ONLY_20260915.md
+
+### M366. 아이디어(미착수) - EXECUTION-REUSE-PART4-7-REMAINING - "직전 성공 실행 재사용" 기능 중 파트1 완료/파트2-3 진행중 이후 남은 파트4~7 순차 진행 필요
+- "직전 성공 실행 재사용" 기능 중 파트1(조회함수, 완료)/파트2-3(게이트+복사,
+  진행중) 이후 남은 파트4(원본 실행시각 배지 표시)/파트5(화면 다중선택
+  강제 재실행 UI)/파트6(엑셀 강제재실행 컬럼)/파트7(통합 회귀) — 순차 진행
+  필요.
+- 근거: EXECUTION-TIME-REUSE-WITH-TIMESTAMP-AND-FORCE-OVERRIDE-DESIGN_20260915.md
+
+### M367. 아이디어(미착수) - STATS-EXECUTE-RESULT-PLAN-VERSION-HISTORY-GAP - stats_execute_result가 plan_id로 매번 최신 plan snapshot을 재조회하는 구조라 plan 재생성 시 "당시 SQL"과 어긋날 수 있는 이론적 허점
+- stats_execute_result가 plan_id로 매번 최신 plan snapshot을 재조회하는
+  구조라 plan이 재생성되면 "당시 SQL"이 아닌 "현재 plan의 SQL"과 비교하게
+  되는 이론적 허점 — EXECUTION-REUSE 파트2/3 설계 시 고려 필요.
+- 근거: EXECUTION-REUSE-PART1-LAST-SUCCESS-LOOKUP-FUNCTIONS_20260915.md
+
+### M368. 아이디어(미착수, 사용자 판단 필요) - VALIDATION-HISTORY-SERVICE-SQL-HASH-FORMAT-MIGRATION - `validation_history_service.py`의 SQL해시 방식이 canonical_sql_hash와 형식·job 연속성 계약이 달라 이번 통합에서 의도적으로 제외됨
+- `validation_history_service.py`의 normalize_sql/build_sql_hash가
+  canonical_sql_hash와 형식(64자hex vs 32자)·job 연속성 계약이 달라 이번
+  SQL해시 통합에서 의도적으로 제외됨 — 전환하려면 별도의 마이그레이션 설계
+  (과거 job 이력과의 연속성 보존 방법) 필요.
+- 근거: CODEBASE-AUDIT-SAFE-CONSOLIDATION-FIXES-IMPLEMENT_20260915.md
+
+### M369. 아이디어(미착수) - CANONICAL-SQL-FOLDING-MYSQL-MSSQL-SUPPORT - 식별자 대소문자 폴딩이 Oracle/PostgreSQL만 적용되고 MySQL/MSSQL은 규칙 미확정으로 보류됨
+- 식별자 대소문자 폴딩이 Oracle/PostgreSQL만 적용되고 MySQL(서버설정
+  의존)/MSSQL(collation 의존)은 규칙 미확정으로 보류됨 — 서버설정을 실제로
+  조회하는 방법이 생기면 확장 검토 가능.
+- 근거: CANONICAL-SQL-IDENTIFIER-CASE-FOLDING-DESIGN-INVESTIGATE-ONLY_20260915.md
+
+### M370. 참고(조치 불필요 가능성 높음) - MYSQL-MSSQL-METADATA-N1-BULK-OPTIMIZE - MySQL/Oracle/MSSQL 메타데이터 수집이 테이블당 최대 5개 N+1 쿼리(PostgreSQL은 이미 벌크화됨)
+- MySQL/Oracle/MSSQL 메타데이터 수집이 테이블당 최대 5개 N+1 쿼리
+  (PostgreSQL은 이미 벌크화됨) — 코드에 "신규 SQL 작성 금지" 주석이 있어
+  트레이드오프 판단 필요.
+- 근거: DB-EXTRACTION-AND-PERFORMANCE-WIDE-AUDIT_20260915.md
+
+### M371. 참고(조치 불필요 가능성 높음) - NON-PG-CONNECTION-POOLING-GAP - PostgreSQL 외 DBMS의 커넥션 풀링 미지원, 문서화된 의도적 기술부채
+- PostgreSQL 외 DBMS의 커넥션 풀링 미지원, 문서화된 의도적 기술부채.
+- 근거: DB-EXTRACTION-AND-PERFORMANCE-WIDE-AUDIT_20260915.md
+
+### M372. 아이디어(미착수) - ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW - CODEBASE-WIDE 감사에서 확인된 고아 함수 48건(호출부 없음) 삭제 여부 개별 판단 필요
+- CODEBASE-WIDE 감사에서 확인된 고아 함수 48건(호출부 없음) 삭제 여부
+  개별 판단 필요 — 일괄 처리 금지, 하나씩 검토.
+- 근거: CODEBASE-WIDE-DEAD-CODE-AND-ISSUES-AUDIT_20260915.md(첨부 목록 참고)
+
+### M373. 아이디어(미착수) - SILENT-EXCEPTION-12B-16C-FOLLOWUP - 조용히 예외를 삼키는 172건 중 (B)의심 12건/(C)위험 16건 후속 처리 필요
+- 조용히 예외를 삼키는 172건 중 (B)의심 12건(로그 추가 검토)/(C)위험 16건
+  (버그 은폐 가능성, 개별 수정 검토) — 코드 미수정 상태로 목록만 확보됨,
+  우선순위 정해 후속 처리 필요.
+- 근거: SILENT-EXCEPTION-172-CASES-CATEGORIZE-AND-SAFE-DOCUMENT_20260915.md
+  (전체 목록 첨부)
+
+### M374. 참고(문서 정합성) - EXACT-DIFF-FULL-STALE-DOCSTRING - `services/diagnosis/exact_diff_full.py` 문서 주석이 현재 dispatch(무조건 UNSORTED)와 어긋나는 옛 설명을 담고 있음
+- `services/diagnosis/exact_diff_full.py`의 문서 주석이 "PK_RANGE_
+  CHUNK_COMPARE가 크기 기반으로 선택될 수 있다"는 옛 설명을 그대로 담고
+  있어 현재 dispatch(무조건 UNSORTED)와 어긋남 — 문구만 정정 필요.
+- 근거: PK-RANGE-CHUNK-VS-UNSORTED-CHUNK-DUPLICATE-OR-DISTINCT-CHECK-ONLY_20260915.md
+
+### M375. 참고(문서 정합성) - CLAUDE-MD-OPENPYXL-MISSING-FROM-EXCEPTION-LIST - `openpyxl`이 실사용/고정의존성인데 CLAUDE.md 외부 패키지 예외 목록에서 누락됨
+- `openpyxl`이 실사용/고정의존성인데 CLAUDE.md의 외부 패키지 예외 목록
+  (sqlglot/Tabler/Tabulator/playwright)에서 누락됨 — 문서만 정정.
+- 근거: EXECUTION-TIME-REUSE-WITH-TIMESTAMP-AND-FORCE-OVERRIDE-DESIGN_20260915.md
+
+### M376. 참고(범위 밖 별개 이슈) - BATCH-WRAPPER-RESULT-EXECUTED-AT-NOT-PER-ROW - `DTV_batch_wrapper_result.executed_at`이 배치 단위 1회 계산이라 같은 배치 내 row가 전부 동일 시각을 가짐
+- `DTV_batch_wrapper_result.executed_at`이 배치 단위 1회 계산이라 같은
+  배치 내 row가 전부 동일 시각을 가짐(row별 실제 실행 시각 아님) — 오늘
+  요구사항(초단위 여부)과 별개 이슈로 분리됨.
+- 근거: EXECUTION-TIME-REUSE-WITH-TIMESTAMP-AND-FORCE-OVERRIDE-DESIGN_20260915.md
