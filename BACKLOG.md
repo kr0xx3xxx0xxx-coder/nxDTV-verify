@@ -10881,3 +10881,41 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   의 파트A 5개 테스트는 이 모듈을 직접 테스트하므로 그대로 유지).
   삭제 여부는 별도 판단 필요.
 - 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md
+
+### M378. 아이디어(미착수, 권장·소규모) - BATCH-STATS-EXECUTE-REUSE-GATE-WIRE - `services/batch_stats_execute_service.py::_execute_one_plan()`에 재사용 게이트(find_last_success_batch_run) 미배선
+- `services/batch_stats_execute_service.py::_execute_one_plan()`
+  (:808~938)의 `execute_stats_validation` 호출(:861) 직전에, 이미
+  완성·테스트된 `find_last_success_batch_run()`
+  (services/execution_reuse_lookup.py:79~187, 현재 미배선)을 삽입.
+  필요 입력(group_id/target_table/plan_type/current_source_sql/
+  tgt_sql) 전부 이미 지역변수로 존재. 30~50줄 추가, 기존 로직
+  무수정. 오늘 만든 재사용 게이트 이득을 일괄검증 "고급: 통계검증계획
+  재생성" 숨김 경로에도 즉시 확장 가능.
+- 근거: BATCH-STATS-EXECUTE-SERVICE-VS-SHARED-FACADE-ARCHITECTURE-
+  VERIFY_20260915.md
+
+### M379. 아이디어(미착수, 중~대규모, 별도 승인 필요) - BATCH-STATS-EXECUTE-FACADE-UNIFY - `_execute_one_plan`을 개별검증 core(single_validation_run_facade.py) 호출로 완전 치환
+- `_execute_one_plan`을 개별검증 core(single_validation_run_facade.py)
+  호출로 완전 치환. 막힘 요소 4가지: (1) plan snapshot에
+  migration_sql 없음(단 조회 코드는 같은 파일
+  run_batch_auto_save::get_group_current_execution_targets:702~708에
+  이미 존재, 재사용 가능), (2) facade 재실행 방식으로 plan당 비용
+  증가 → timeout 정책(:87~94, 60~300초) 재조정 필요, (3) 저장 SQL
+  재실행→재생성 SQL 전환으로 결과 동등성 실측 검증 필수, (4) 교차
+  DBMS(오라클↔PG) plan이 HOLD로 막힐 수 있음
+  (scripts/dev_e2e/m79_oracle_pg_cross_dbms_stats_fixture.py:212
+  실사용 확인). 부수 이득: 레코드셋 해시 검증·카디널리티 게이트·세트
+  병렬 실행·공통 verdict 계약이 자동 전파(현재 이 그리드는 전부 못
+  받음). 교체 대상은 실질적으로 약 130줄.
+- 근거: BATCH-STATS-EXECUTE-SERVICE-VS-SHARED-FACADE-ARCHITECTURE-
+  VERIFY_20260915.md
+
+### M380. 참고(문서/화면 정합성) - BATCH-STATS-EXECUTE-DUAL-PATH-UI-CLARITY - 일괄검증 4·5단계에 실행 버튼 2개/결과 카드 2개가 동시 노출되나 어느 쪽이 최신·정식 경로인지 화면 표시 없음
+- 일괄검증 4단계 같은 카드 영역에 실행 버튼 2개(전체 통계검증 실행
+  vs 안전 계획 실행 LOW/MEDIUM), 5단계에 결과 카드 2개
+  (batchWrapperResultCard vs batchExecHistoryCard)가 동시 노출되나
+  어느 쪽이 최신/정식 경로인지 화면에 표시가 없음(현재는 title
+  속성·소스 주석에만 위계 정보 존재). 엔진 통합(M378/M379) 여부와
+  무관하게 별도로 개선 가능.
+- 근거: BATCH-STATS-EXECUTE-SERVICE-VS-SHARED-FACADE-ARCHITECTURE-
+  VERIFY_20260915.md
