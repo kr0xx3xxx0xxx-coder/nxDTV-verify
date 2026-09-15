@@ -10739,12 +10739,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   `strategy-override-check` 라우트는 여전히 고아 상태(참고용, 미삭제,
   범위 밖). 그룹1 관련해서는 잔여 항목 없음.
 
-### M364. 아이디어(미착수) - PK-RANGE-CHUNK-CONDITIONAL-AUTO-SELECT-REVIVE - 숫자PK+인덱스 확인 시 merge-walk(2.26배 빠름)로 자동 전환하는 기존 부품이 dead code 상태, 재배선 시 대용량 표준케이스 체감속도 개선 가능
-- 숫자PK+인덱스 확인 시 merge-walk(2.26배 빠름)로 자동 전환하는 기존 부품
-  (group_column_index_service.py + evaluate_unsorted_chunk_pk_lookup_gate)이
-  dead code 상태 — 현재 dispatch 구조와 정합성 재검증 후 재배선하면 대용량
-  표준케이스 체감속도 개선 가능.
-- 근거: PK-RANGE-CHUNK-HANG-ROOT-CAUSE-FIXABILITY-CHECK-ONLY_20260915.md
+### M364. 결정됨(사용자 확정, 착수 대기) - PK-RANGE-CHUNK-CONDITIONAL-AUTO-SELECT-REVIVE → MERGE-WALK-PERMANENT-REMOVAL로 방향 전환 - merge-walk(run_pk_range_chunk_compare) 부활은 2026-08-30 안전우선 결정을 되돌리는 것과 같아 파트A 검증에서 중단됨(근거: PK-RANGE-CHUNK-CONDITIONAL-AUTO-SELECT-REVIVE-M364_20260915.md) → 사용자가 부활 대신 완전 폐기(코드 삭제)로 최종 결정. 실행 지침: directives/MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL.md(작성 완료, 미착수). 착수 시 M374(exact_diff_full.py 문서 낡음)도 함께 해소됨.
 
 ### M365. 아이디어(미착수) - NATIVE-PK-FANOUT-PROBE-TIMEOUT-DISCREPANCY-INVESTIGATE - `_native_pk_fanout_present`가 문서화된 8초 타임아웃에도 실측 61~92초가 걸린 원인 미확정
 - `_native_pk_fanout_present`가 문서화된 8초 타임아웃에도 실측 61~92초가
