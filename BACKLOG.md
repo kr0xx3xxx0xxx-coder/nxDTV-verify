@@ -10869,7 +10869,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   요구사항(초단위 여부)과 별개 이슈로 분리됨.
 - 근거: EXECUTION-TIME-REUSE-WITH-TIMESTAMP-AND-FORCE-OVERRIDE-DESIGN_20260915.md
 
-### M377. 참고(범위 밖 고아 모듈) - CHUNK-PUSHDOWN-MODULE-ORPHANED-AFTER-MERGEWALK-REMOVAL - `services/exact_diff/chunk_pushdown.py`의 유일한 소비처(evaluate_chunk_plan_guard)가 M364 삭제로 사라져 프로덕션 호출부 0건이 됨
+### M377. ✅ 해결 완료 - CHUNK-PUSHDOWN-MODULE-ORPHANED-AFTER-MERGEWALK-REMOVAL - `services/exact_diff/chunk_pushdown.py`의 유일한 소비처(evaluate_chunk_plan_guard)가 M364 삭제로 사라져 프로덕션 호출부 0건이 됨(2026-09-15)
 - MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL(M364) 작업 중 확인 —
   `services/exact_diff/chunk_pushdown.py`(analyze_chunk_pushdown, SQL
   pushdown 가능성 정적 분석기)는 merge-walk 엔진의
@@ -10880,7 +10880,15 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   삭제하지 않고 남겼다(tests/test_pk_range_chunk_pushdown_and_imbalance.py
   의 파트A 5개 테스트는 이 모듈을 직접 테스트하므로 그대로 유지).
   삭제 여부는 별도 판단 필요.
-- 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md
+- [해결, 2026-09-15] 후속 지침 MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG
+  파트B에서 안전 재확인(프로덕션 코드 전체 grep 0건 재확인 — scratchpad/
+  scripts/dev_e2e 진단 스크립트만 참조하며 그 스크립트들도 이미 삭제된
+  pk_range_chunk.run_pk_range_chunk_compare를 같이 참조하는 기존 stale
+  상태였음) 후 모듈과 파트A 전용 테스트 tests/test_pk_range_chunk_pushdown_
+  and_imbalance.py를 함께 삭제. 코드 저장소 커밋 1341f4d3, 회귀
+  samples/test_virtual_cases.py 8/8·samples/test_complex_cases.py 5/5 통과.
+- 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md,
+  MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md
 
 ### M378. 아이디어(미착수, 권장·소규모) - BATCH-STATS-EXECUTE-REUSE-GATE-WIRE - `services/batch_stats_execute_service.py::_execute_one_plan()`에 재사용 게이트(find_last_success_batch_run) 미배선
 - `services/batch_stats_execute_service.py::_execute_one_plan()`
@@ -10919,3 +10927,24 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   무관하게 별도로 개선 가능.
 - 근거: BATCH-STATS-EXECUTE-SERVICE-VS-SHARED-FACADE-ARCHITECTURE-
   VERIFY_20260915.md
+
+### M381. 아이디어(미착수) - UNSORTED-CHUNK-PK-LOOKUP-PROGRESS-CB-REGRESSION-TEST-MISSING - `run_unsorted_chunk_pk_lookup_compare`의 progress_cb 단조증가/basis 초기화 자체 회귀 테스트 부재
+- MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL(M364)로 불일치 레코드
+  추출이 `run_unsorted_chunk_pk_lookup_compare` 하나로 단일화됐으나, 이
+  엔진의 progress_cb 단조증가(진행률이 역행하지 않음)·basis 초기화
+  동작 자체를 검증하는 회귀 테스트가 없다(과거 chunk 엔진 쪽 progress
+  테스트는 M364 삭제 대상에 포함돼 제거됨, 동등 대체 테스트 미작성 —
+  커버리지 공백으로 완료보고에만 명시됐던 항목).
+- 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md,
+  MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md
+
+### M382. 아이디어(미착수) - UNSORTED-CHUNK-PK-LOOKUP-TRACEMALLOC-NOT-WIRED - `run_unsorted_chunk_pk_lookup_compare` 엔진에 tracemalloc 계측이 애초에 배선돼 있지 않음(DIRECT_STREAM 엔진만 계측됨)
+- M364로 유일 생존 엔진이 된 `run_unsorted_chunk_pk_lookup_compare`에는
+  tracemalloc 메모리 계측이 처음부터 배선돼 있지 않다 — 현재
+  DIRECT_STREAM_COMPARE 엔진만 계측 대상이라, 메모리 관련 이상(대량
+  chunk 처리 시 메모리 폭주 등)을 이 엔진에서는 tracemalloc으로 조기
+  탐지할 수 없다. tests/test_tracemalloc_toggle_wiring.py도 M364에서
+  chunk 절반만 제거되고 DIRECT_STREAM 절반만 남아 이 공백을 커버하지
+  않는다.
+- 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md,
+  MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md
