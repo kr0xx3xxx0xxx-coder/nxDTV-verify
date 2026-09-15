@@ -10842,12 +10842,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   개별 판단 필요 — 일괄 처리 금지, 하나씩 검토.
 - 근거: CODEBASE-WIDE-DEAD-CODE-AND-ISSUES-AUDIT_20260915.md(첨부 목록 참고)
 
-### M373. 아이디어(미착수) - SILENT-EXCEPTION-12B-16C-FOLLOWUP - 조용히 예외를 삼키는 172건 중 (B)의심 12건/(C)위험 16건 후속 처리 필요
-- 조용히 예외를 삼키는 172건 중 (B)의심 12건(로그 추가 검토)/(C)위험 16건
-  (버그 은폐 가능성, 개별 수정 검토) — 코드 미수정 상태로 목록만 확보됨,
-  우선순위 정해 후속 처리 필요.
-- 근거: SILENT-EXCEPTION-172-CASES-CATEGORIZE-AND-SAFE-DOCUMENT_20260915.md
-  (전체 목록 첨부)
+### M373. ✅ 해결 완료(2026-09-15) - SILENT-EXCEPTION-12B-16C-FOLLOWUP - 172건 중 남아있던 (B)의심 12건/(C)위험 16건 개별 처리 완료(로그 15건 추가 + 실제 버그 1건 수정 — result_persistence_facade.py의 resume_refs pydantic 필드 누락으로 RETRY_CLAIMED 재시도 시 중복저장 방지가 100% 무력화되던 결함). 커밋 bdac4c2f(파트B)/5e8bf798(파트C)/a83b578c(정리). 근거: SILENT-EXCEPTION-12B-16C-FOLLOWUP-M373_20260915.md
 
 ### M374. ✅ 해결 완료 - EXACT-DIFF-FULL-STALE-DOCSTRING - `services/diagnosis/exact_diff_full.py` 문서 주석을 현재 dispatch(무조건 UNSORTED)와 일치하도록 정정(2026-09-15)
 - `services/diagnosis/exact_diff_full.py`의 "PK_RANGE_CHUNK_COMPARE가
@@ -10858,10 +10853,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   같은 작업으로 해소.
 - 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md
 
-### M375. 참고(문서 정합성) - CLAUDE-MD-OPENPYXL-MISSING-FROM-EXCEPTION-LIST - `openpyxl`이 실사용/고정의존성인데 CLAUDE.md 외부 패키지 예외 목록에서 누락됨
-- `openpyxl`이 실사용/고정의존성인데 CLAUDE.md의 외부 패키지 예외 목록
-  (sqlglot/Tabler/Tabulator/playwright)에서 누락됨 — 문서만 정정.
-- 근거: EXECUTION-TIME-REUSE-WITH-TIMESTAMP-AND-FORCE-OVERRIDE-DESIGN_20260915.md
+### M375. ✅ 해결 완료(2026-09-15) - CLAUDE-MD-OPENPYXL-EXCEPTION-LIST-FIX - CLAUDE.md 외부 패키지 예외 목록에 openpyxl 추가. 커밋 b00ba804. 근거: CLAUDE-MD-OPENPYXL-EXCEPTION-LIST-FIX-M375_20260915.md
 
 ### M376. 참고(범위 밖 별개 이슈) - BATCH-WRAPPER-RESULT-EXECUTED-AT-NOT-PER-ROW - `DTV_batch_wrapper_result.executed_at`이 배치 단위 1회 계산이라 같은 배치 내 row가 전부 동일 시각을 가짐
 - `DTV_batch_wrapper_result.executed_at`이 배치 단위 1회 계산이라 같은
