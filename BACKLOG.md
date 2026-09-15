@@ -10913,7 +10913,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL_20260915.md,
   MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md
 
-### M378. 아이디어(미착수, 권장·소규모) - BATCH-STATS-EXECUTE-REUSE-GATE-WIRE - `services/batch_stats_execute_service.py::_execute_one_plan()`에 재사용 게이트(find_last_success_batch_run) 미배선
+### M378. ✅ 해결 완료 - BATCH-STATS-EXECUTE-REUSE-GATE-WIRE - `services/batch_stats_execute_service.py::_execute_one_plan()`에 재사용 게이트(find_last_success_batch_run) 미배선
 - `services/batch_stats_execute_service.py::_execute_one_plan()`
   (:808~938)의 `execute_stats_validation` 호출(:861) 직전에, 이미
   완성·테스트된 `find_last_success_batch_run()`
@@ -10922,8 +10922,36 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   tgt_sql) 전부 이미 지역변수로 존재. 30~50줄 추가, 기존 로직
   무수정. 오늘 만든 재사용 게이트 이득을 일괄검증 "고급: 통계검증계획
   재생성" 숨김 경로에도 즉시 확장 가능.
+- [해결, 2026-09-15] BATCH-STATS-EXECUTE-REUSE-GATE-WIRE-M378 지침으로
+  `_execute_one_plan()`에 group_id 파라미터(선택, 기본 None — 미전달 시
+  게이트 자체 생략으로 기존 호출부/테스트 무회귀) 추가 후 그 안에서
+  `find_last_success_batch_run()` 조회 게이트를 배선. 매치 시
+  `stats_execute_result` 원본 행을 조회해 `_execute_one_plan()` 표준
+  반환 shape 로 복사(`_copy_reused_batch_execute_result`, 새 컬럼 추가
+  없이 summary_json 안에 is_reused_result/reused_from_run_id/
+  reused_original_executed_at 로 표시 — 개별검증 facade와 동일 근거),
+  실제 실행/저장은 호출부(`execute_stats_plans_for_group` 루프)의 기존
+  `_save_plan_result()` 골격을 그대로 재사용(새 저장 경로 미발명).
+  조회/복사 실패는 전부 예외로 흡수해 실제 실행으로 안전 폴백
+  (`_try_reuse_last_success_batch`). 부수 발견: PART1 모듈
+  (services/execution_reuse_lookup.py)이 이전 세션(EXECUTION-REUSE-
+  PART2-3, 커밋 b58374be)에서 커밋되지 않은 채 untracked 로 남아 있던
+  것을 이번 커밋에 함께 포함(그 커밋이 이미 이 모듈을 import 하고
+  있어 git 이력상 참조가 끊긴 상태였음).
+  검증: tests/test_batch_execution_reuse_gate.py 신설(4개, 임시 격리
+  SQLite, execute_stats_validation만 mock) — ①동일 SQL 재실행 시
+  재사용(실제 실행 0회) ②SQL 변경 시 실제 재실행 ③조회 실패 시 안전
+  폴백 ④group_id 미전달 시 게이트 생략(기존 호출부 무회귀) 4가지 전부
+  통과. 기존 회귀 samples/test_virtual_cases.py 8/8·
+  samples/test_complex_cases.py 5/5·tests/test_execution_reuse_lookup.py
+  7/7, 관련 배치 실행 테스트(test_task12_d/e/f/h,
+  test_batch_autosave_trigger_wire, test_result_report_consistency)
+  164/165 통과(1건 제외는 격리된 pristine 커밋에서도 동일 재현되는
+  기존 실패로 이번 변경과 무관 확인). 강제재실행(파트5~6 상당)은
+  이번 범위 밖. 코드 저장소 커밋 c3aa01c5.
 - 근거: BATCH-STATS-EXECUTE-SERVICE-VS-SHARED-FACADE-ARCHITECTURE-
-  VERIFY_20260915.md
+  VERIFY_20260915.md, BATCH-STATS-EXECUTE-REUSE-GATE-WIRE-
+  M378_20260915.md
 
 ### M379. 아이디어(미착수, 중~대규모, 별도 승인 필요) - BATCH-STATS-EXECUTE-FACADE-UNIFY - `_execute_one_plan`을 개별검증 core(single_validation_run_facade.py) 호출로 완전 치환
 - `_execute_one_plan`을 개별검증 core(single_validation_run_facade.py)
