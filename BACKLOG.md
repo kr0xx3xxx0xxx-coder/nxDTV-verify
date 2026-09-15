@@ -10779,9 +10779,41 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   트레이드오프 판단 필요.
 - 근거: DB-EXTRACTION-AND-PERFORMANCE-WIDE-AUDIT_20260915.md
 
-### M371. 참고(조치 불필요 가능성 높음) - NON-PG-CONNECTION-POOLING-GAP - PostgreSQL 외 DBMS의 커넥션 풀링 미지원, 문서화된 의도적 기술부채
-- PostgreSQL 외 DBMS의 커넥션 풀링 미지원, 문서화된 의도적 기술부채.
-- 근거: DB-EXTRACTION-AND-PERFORMANCE-WIDE-AUDIT_20260915.md
+### M371. 조사완료(승격 - 우선순위 중) - NON-PG-CONNECTION-POOLING-GAP - PostgreSQL 외 DBMS(Oracle/MySQL/MSSQL) 커넥션 풀링 미지원 - 배치 공식 병렬 경로에서 row당 신규 연결 반복 확인, "조치 불필요"로 확정 불가
+- 재조사 결론(NON-PG-CONNECTION-POOLING-GAP-CONFIRM-M371 지침): "문서화된 의도적
+  기술부채"라는 원 문구는 맞지만, 그 "의도"는 드라이버 기술적 한계가 아니라 최초
+  구현(2026-06-24, 커밋 c1fa7fe2 `perf: reuse database connections across
+  validation requests`) 당시 Neon PostgreSQL SSL handshake 비용 제거만을 목표로 삼은
+  스코프 결정이었다(services/connection_pool.py:15,94-95,141-147,191-195 —
+  PostgreSQL만 idle 풀에 반납·재사용, Oracle/MySQL/MSSQL은 checkout마다 신규 물리
+  연결을 열고 return시 즉시 close). Oracle(oracledb/cx_Oracle)·MSSQL(pyodbc) 드라이버
+  모두 커넥션 풀링이 기술적으로 가능하다(oracledb는 SessionPool 내장) — "드라이버
+  미지원"이 아니라 우선순위 문제였다.
+- 실제 영향 규모: 개별검증 1건은 이미 request_connection_scope(DB 종류 무관 요청범위
+  캐시, services/single_validation_run_facade.py:1098-1108)로 원본/목적지 각 1개
+  연결만 연다 — 이 경로는 문제 없음. 그러나 배치(일괄) 실행의 현재 공식 경로는
+  (routes/batch_route.py:2203 주석 — legacy 순차 경로는 이미 차단됨) POST
+  `.../run-wrapper` → services/batch/wrapper_parallel_runner.py이며, 이 모듈 22-23행
+  주석대로 "각 worker 스레드가 row 마다 자체 request_connection_scope 를 열고 row 간
+  연결 공유 없음". PostgreSQL은 scope 종료 후에도 프로세스 전역 pool
+  (connection_pool.py)에 idle로 반납돼 다음 row가 warm 재사용하지만, Oracle/MySQL/
+  MSSQL은 row(테이블)마다 매번 원본·목적지 양쪽에 새 물리 연결을 다시 맺는다 —
+  배치 테이블 수만큼 핸드셰이크·인증 비용이 반복 누적된다(기본 동시성: 전역 4/
+  프로필당 3, wrapper_parallel_runner.py:57-69). c1fa7fe2 실측(Neon PG cold 연결
+  1건 = analyze 기준 약 1.7초, warm 460ms 대비)에 비춰볼 때 on-prem Oracle/MSSQL
+  환경에서도 절대 무시할 수준이 아니다.
+- 별개 발견(이번 지침 범위 밖, 조치 안 함): services/db_adapters/mysql.py,
+  mariadb.py 에는 connect() 구현 자체가 없어(BaseDbmsAdapter.connect() 기본
+  RuntimeError 상속) 현재 MySQL/MariaDB는 라이브 쿼리 실행(COUNT/통계검증) 자체가
+  안 되는 상태로 보인다 — 풀링 논의 이전에 별도 확인 필요(신규 backlog 후보로만
+  기록, 이번 지침 대상 아님, 코드 미확인 심화조사 필요).
+- **결론(4번): "현상 유지"로 닫지 않고 "우선순위 중"으로 승격.** 배치 공식 병렬
+  경로에서 Oracle/MSSQL 대상 row당 연결 반복이 구조적으로 확인되어 대량 배치일수록
+  누적 비용이 실측 가능한 수준이기 때문. 단 전체스캔 상한누락(M-우선순위 상 항목)
+  등보다는 후순위 — DB-EXTRACTION-AND-PERFORMANCE-WIDE-AUDIT_20260915.md 원 분류
+  ("중")를 그대로 유지하되, "조치 불필요"였던 판정만 정정한다.
+- 근거: DB-EXTRACTION-AND-PERFORMANCE-WIDE-AUDIT_20260915.md,
+  NON-PG-CONNECTION-POOLING-GAP-CONFIRM-M371_20260915.md(재조사 완료보고서)
 
 ### M372. 아이디어(미착수) - ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW - CODEBASE-WIDE 감사에서 확인된 고아 함수 48건(호출부 없음) 삭제 여부 개별 판단 필요
 - CODEBASE-WIDE 감사에서 확인된 고아 함수 48건(호출부 없음) 삭제 여부
