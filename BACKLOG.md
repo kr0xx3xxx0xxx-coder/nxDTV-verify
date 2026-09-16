@@ -11022,7 +11022,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md,
   UNSORTED-CHUNK-PK-LOOKUP-COVERAGE-GAPS-M381-M382_20260915.md
 
-### M383. 아이디어(미착수) - MYSQL-MARIADB-CONNECT-NOT-IMPLEMENTED - MySQL/MariaDB 어댑터에 connect() 자체가 구현돼 있지 않아 라이브 쿼리 실행(COUNT/통계검증/커넥션 풀링 포함)이 전부 불가능
+### M383. 재확인 완료(2026-09-16, 실행은 보류) - MYSQL-MARIADB-CONNECT-NOT-IMPLEMENTED - MySQL/MariaDB 어댑터에 connect() 자체가 구현돼 있지 않아 라이브 쿼리 실행(COUNT/통계검증/커넥션 풀링 포함)이 전부 불가능
 - NON-PG-CONNECTION-POOLING-ORACLE-MSSQL-EXTEND-M371 작업(Oracle/MSSQL
   커넥션 풀링 확장) 도중 재확인 — `services/db_adapters/mysql.py`,
   `mariadb.py` 어댑터 모두 `connect()` override 가 없어
@@ -11041,6 +11041,50 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   기반 `connect()` 를 오라클/MSSQL 어댑터와 동일한 인터페이스로 이식.
 - 근거: NON-PG-CONNECTION-POOLING-ORACLE-MSSQL-EXTEND-M371_20260915.md,
   F23(IS-PK-FIXED-VALUE-CANDIDATE-RECOMMENDATION-FIX.txt §11-R3/§8)
+- **2026-09-16 재조사(MYSQL-CONNECT-MISSING-M383-AND-BATCH-ROUTE-THIRD-TRY)
+  결과 — 위 사실관계를 코드 직접 열람으로 재확인(추측 아님):**
+  - `MySQLAdapter`/`MariaDBAdapter` 모두 `supports_connect()`/`connect()`
+    override 없음(base 상속 그대로) — connect 미구현 재확인.
+  - **이미 마련된 안전장치 확인**: (1) 개별검증 실행 가드
+    `ui/tabler_renderer.py:_singleExecGuard`(`_EXEC_OK = {postgresql,
+    oracle}`)가 COUNT/통계검증 실행을 MySQL/MariaDB/MSSQL/DB2 전부에
+    대해 클라이언트에서 사전 차단하며 "현재 MariaDB/MySQL/MSSQL/DB2
+    검증 실행은 아직 지원 범위가 아닙니다" 안내를 이미 표시 중.
+    (2) DB 프로필 "접속 테스트" 화면도 MySQL 은 `_CONN_TEST_DBS`
+    allowlist에서 이미 제외돼 "현재 MySQL 실제 접속 테스트는 아직
+    지원하지 않습니다. 프로필 저장은 가능합니다"로 차단 안내 중 —
+    즉 "선택은 되는데 실행 시점에야 실패"라는 우려는 이 두 경로에서는
+    이미 상당히 해소돼 있음.
+  - **새로 발견한 불일치(M388으로 별도 등록)**: `routes/batch_route.py`
+    의 배치 업로드 전용 `_db_connect()`(메타/샘플 수집용, 실행과는
+    별개 경로)는 `db_type=='mysql'` 일 때 어댑터 레지스트리를 거치지
+    않고 pymysql로 **실제로 연결에 성공**한다 — "라이브 접속 자체가
+    코드베이스에 없다"는 원 서술은 정확히는 "실행(COUNT/통계검증)
+    체크포인트에는 없다"로 좁혀야 정확함. 상세는 M388.
+  - **구현 필요성 판단(파트A 결론)**: "필요 없음(수요 없음)"으로
+    단정하지 않음 — `requirements.txt`에 `pymysql==1.1.3　# MariaDB/
+    MySQL`이 이미 프로덕션 고정 의존성으로 박혀 있고(우연이 아니라
+    애초에 지원 의도가 있었다는 정황), 연결테스트·업로드 메타수집
+    두 경로는 이미 pymysql로 동작 중이라 "마지막 한 조각"(실행
+    어댑터 connect())만 비어 있는 상태다. 다만 이번 지침 지시대로
+    **구현은 실행하지 않고 범위/난이도만 제시**한다:
+    1) `MySQLAdapter.connect()`: `postgresql.py`/`oracle.py` connect()와
+       동일 패턴으로 pymysql.connect(host/port/dbname/user/password,
+       connect_timeout) 이식 — 코드량 자체는 15~20줄 수준(소).
+    2) `MariaDBAdapter.connect()`: 드라이버 동일(pymysql) — 유사 소규모.
+    3) `routes/batch_route.py::_db_connect()`의 mysql(및 postgresql)
+       분기를 oracle/mssql처럼 `_open_real_connection`(어댑터 단일
+       위임점) 경유로 통일 — 중복 커넥션 로직 제거(구조 정리, 중).
+    4) 이 프로젝트 기존 관례(모든 어댑터 docstring의 "실DB 검증
+       완료" 표기)상, `supports_connect()=True`로 전환하려면 실제
+       MySQL/MariaDB 인스턴스로 COUNT/통계검증/timeout/키메타 전체
+       End-to-End 검증이 선행돼야 함 — 이 실측 작업이 전체 공수의
+       대부분을 차지할 것으로 예상(대).
+    5) `_singleExecGuard`/`_EXEC_OK`, `STATS_CROSS_DBMS_PAIRS` 등
+       실행 허용 표에 mysql/mariadb 추가 반영(소~중).
+    → 전체 난이도: 중~대(주로 4번 실DB 검증 공수). 코드 자체 이식은
+       작지만, 프로젝트가 요구하는 "실DB 검증 완료" 기준을 채우는
+       과정이 관건 — **다음 지침에서 별도 승인 후 진행 권장**.
 
 ### M385. ✅ 해결 완료(2026-09-16) - DIALECT-SHIM-FILES-FULLY-DEAD-STRUCTURAL-REMOVAL - `services/dialects/{postgresql,oracle,mysql,mssql}_dialect.py` 4개 shim 파일이 통째로 사장 상태(모듈 import 0건)
 - M372(고아 함수 48건 개별 검토) 그룹3 조사 중 발견. `resolve_{oracle,
@@ -11145,3 +11189,70 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 코드 저장소 커밋: b554ba63(파트A), 17426deb(파트B).
 - 근거: SECOND-PASS-AUDIT-PRIORITY-FIX-M373-REMAINING_20260916.md,
   FULL-CODEBASE-SECOND-PASS-AUDIT-ALL-EXISTING-SOURCE_20260916.md
+
+### M388. 아이디어(미착수) - BATCH-ROUTE-DUPLICATE-DB-CONNECT-AND-DEAD-SAVE-BATCH - `routes/batch_route.py`에 어댑터 레지스트리를 우회하는 중복 DB연결 구현 + 도달 불가 dead code 발견(M383 재조사 부산물)
+- M383 재조사(MYSQL-CONNECT-MISSING-M383-AND-BATCH-ROUTE-THIRD-TRY,
+  2026-09-16) 중 발견. 두 가지 별개 사실:
+  1) **중복 커넥션 구현**: `routes/batch_route.py::_db_connect()`
+     (배치 업로드 시 원본 라이브 테이블 메타/샘플 수집 전용 — COUNT/
+     통계검증 실행과는 다른 경로)는 `oracle`/`mssql`은 이미
+     `services.db_query_service._open_real_connection`(어댑터 단일
+     위임점)에 위임하도록 정리돼 있으나(주석: "MSSQL-MISSING-BRANCH-
+     INVESTIGATE-AND-FIX"), `postgresql`/`mysql` 두 분기는 여전히
+     psycopg2/pymysql을 이 함수 안에 직접 인라인 구현해 어댑터 레지스트리를
+     완전히 우회한다. 그 결과 `db_type='mysql'`인 배치 업로드는 이
+     경로에서 **실제로 라이브 MySQL에 접속해 메타를 수집하는 데 성공**하는데,
+     막상 같은 batch의 실제 COUNT/통계검증 실행은 어댑터 레지스트리
+     체크포인트(`MySQLAdapter.connect()` 미구현)에서 막힌다 — 같은
+     프로젝트 안에서 "MySQL 라이브 접속 가능 여부"에 대한 답이 경로마다
+     달라지는 비일관 상태(M383 원 서술 "라이브 접속 자체가 코드베이스에
+     없다"를 정정하는 근거).
+  2) **도달 불가 dead code**: 위 `_db_connect()`를 호출하는
+     `_upload_collect_meta_and_classify`와는 별개로, 같은 파일의 중첩
+     함수 `_save_batch()`(및 그 안의 `persist_batch_rows` 호출부 —
+     이번 지침 파트B에서 예외 로그를 보강한 지점)는 모듈 상수
+     `_UPLOAD_STORE_ONLY = True`(REWORK 이후 하드코딩 고정값, 토글
+     아님)로 인해 `_has_content_error`가 항상 False로 고정되고,
+     `_save_batch`의 유일한 호출부(`if not _is_official: if
+     _has_content_error: _save_batch("OFFICIAL")`)가 절대 True가 될 수
+     없어 **정상 HTTP 경로로는 `_save_batch` 자체가 호출되지 않는다**
+     (실제 "공식" 업로드 저장은 그 아래 별도로 인라인 중복 구현된
+     `register_batch_run`/파일저장/`persist_batch_rows` 3블록이 담당 —
+     그중 `persist_batch_rows` 블록은 이미 `except Exception as exc:
+     resp["audit_persist_warning"]=...`로 정상 처리돼 있어 이번 파트B
+     대상이 아니었음). 강제 재현 시 `_UPLOAD_STORE_ONLY`를 테스트에서
+     일시적으로 False로 패치해야만 `_save_batch` 진입이 가능했다(정상
+     운영 설정에서는 절대 진입 불가를 실측 확인).
+- 대응 방향(제안만, 이번 지침 실행 안 함): (1) `_db_connect()`의
+  postgresql/mysql 분기를 oracle/mssql과 동일하게 `_open_real_connection`
+  위임으로 통일해 커넥션 로직 이중화 제거. (2) `_save_batch()`가 정말
+  불필요(dead)한지, 아니면 `_UPLOAD_STORE_ONLY`를 되돌릴 계획이 있어
+  일부러 남겨둔 것인지 원 작성자 의도 확인 후, dead라면 REWORK 완료
+  시점에 맞춰 함수 자체 삭제 검토(단, `완료된 모듈 임의 리팩토링 금지`
+  원칙상 사용자 확인 필요).
+- 근거: MYSQL-CONNECT-MISSING-M383-AND-BATCH-ROUTE-THIRD-TRY_20260916.md
+
+### M389. 해결 완료(2026-09-16) - BATCH-ROUTE-THIRD-TRY-PERSIST-ROWS-EXCEPTION-LOGGED - `_save_batch()` 세 번째 무주석 예외(`persist_batch_rows`) 를 warning 로그로 교체(M373 잔여 1건 처리)
+- SECOND-PASS-AUDIT-PRIORITY-FIX-M373-REMAINING이 "이번 지침 범위 밖"으로
+  남겨뒀던 `routes/batch_route.py` `_save_batch()` 세 번째 try(당시 표기
+  줄 1665-1669, 실제 줄 1679-1683)의 무주석 `except Exception: pass`를
+  오늘 확립된 A/B/C 기준으로 개별 판단해 처리.
+- 판단: (B) 의심 — 실패 시 `DTV_mv_upload_row_result` 저장 및
+  current_yn(그룹·목적지별 최신 유효 batch) 갱신이 누락돼 후속
+  COUNT/후보추천이 참조하는 "현재 유효 target" 판정이 stale 상태로
+  남을 수 있음 → 동작(업로드 계속 진행)은 바꾸지 않고 warning 로그만
+  추가.
+- 단, M388에서 함께 확인했듯 이 `_save_batch()` 자체가 현재
+  `_UPLOAD_STORE_ONLY=True`로 인해 정상 운영 경로에서는 호출되지 않는
+  dead code라 실질 운영 영향은 없음 — 그럼에도 향후 플래그가 되돌려지거나
+  `_save_batch`가 다른 경로에서 재사용될 가능성에 대비한 방어적 수정으로
+  남긴다.
+- 검증: 강제 재현(테스트 내에서만 `_UPLOAD_STORE_ONLY`를 False로 패치해
+  `_save_batch` 도달 경로 확보, `persist_batch_rows`를 예외 발생하도록
+  mock) — warning 로그 정상 출력 확인 + 업로드 응답 success 유지(동작
+  불변) 확인. 전체 회귀 samples/test_virtual_cases.py(8/8),
+  samples/test_complex_cases.py(5/5) 통과, tests/test_batch_route.py·
+  test_batch_upload_scope_guard.py·test_full_workbook_error_excel.py
+  (22건) 통과.
+- 코드 저장소 커밋: 99bee1ed.
+- 근거: MYSQL-CONNECT-MISSING-M383-AND-BATCH-ROUTE-THIRD-TRY_20260916.md
