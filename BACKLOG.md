@@ -11075,7 +11075,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   BasicAuth 응답으로 확인) 재확인. 코드 저장소 커밋 5e8c805e. 근거:
   G:\내 드라이브\nxDTV-verify\reports\DIALECT-SHIM-FILES-FULLY-DEAD-STRUCTURAL-REMOVAL-M385_20260916.md
 
-### M386. 부분 해결(함수 1건 삭제완료 2026-09-16, 상수 2건 미착수 유지) - M372-SECONDARY-ORPHANS-CLEANUP - M372 삭제 작업으로 파생된 2차 고아 코드 잔존(함수 1건 ~350줄 + 미사용 상수 2건)
+### M386. ✅ 해결 완료(2026-09-16) - M372-SECONDARY-ORPHANS-CLEANUP - M372 삭제 작업으로 파생된 2차 고아 코드 잔존(함수 1건 ~350줄 + 미사용 상수 2건)
 - M372 그룹6에서 `services/sql_validation_service.py`의
   `validate_insert_select_sql`을 삭제한 결과, 그 함수의 유일한 호출부
   였던 `validate_parsed_sql()`(약 350줄, 하위 헬퍼 `_ok_result()`/
@@ -11085,13 +11085,23 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - M372 그룹4에서도 부수적으로 2건 확인: `services/exact_diff/
   sampling_preflight.py`의 `_NUMERIC_PK_TYPES` 상수(`is_numeric_pk_type`
   삭제로 유일 사용처 소멸)와, `services/diagnosis/cost_accuracy.py`의
-  `R_HOLD_UNEXPECTED` 상수(원래부터 미사용, M372와 무관하게 발견).
-- 셋 다 이번 M372 지침 범위(지정 48건 + 그로 인해 즉시 불필요해진
-  import)를 넘는 2차 정리라 손대지 않고 기록만 남김. 별도 지침에서
-  일반적인 고아 코드 스캔을 한 번 더 돌리거나, 위 3건을 직접 개별
-  판단하면 됨.
+  `R_HOLD_UNEXPECTED` 상수(당시 "원래부터 미사용"으로 기록됐었음).
+- (2026-09-16 후속 처리, M372-SECONDARY-ORPHANS-REMAINING-CONSTANTS-M386)
+  나머지 상수 2건 grep 재확인 결과:
+  - `_NUMERIC_PK_TYPES`: repo 전체 참조 0건(정의부 제외) 확인 → 삭제.
+    코드 저장소 커밋 7d426cac.
+  - `R_HOLD_UNEXPECTED`: **위 기록과 달리 실제로는 사용 중**이었음.
+    `compute_accuracy()`(같은 파일 line 85, HOLD 상태 분기) 안에서 참조
+    중이고, `compute_accuracy` 자체도 `routes/diagnosis_route.py`(운영
+    호출 경로)와 다수 samples/tests에서 호출됨. 이번 grep 재확인 전까지
+    "미사용"으로 잘못 기록돼 있었던 것 — 삭제하지 않고 보류.
+- 검증: 삭제 후 `_NUMERIC_PK_TYPES` grep 참조 0건. 전체 회귀
+  samples/test_virtual_cases.py(8/8), samples/test_complex_cases.py(5/5)
+  통과. 관련 pytest(test_sampling_cost_aware_judgment, test_sampling_gate_
+  wrapping_skip, test_sampling_preflight, test_diagnosis_telemetry_advisory)
+  48건 통과.
 - 근거: ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW-M372_20260915.md(그룹4·
-  그룹6 특이사항)
+  그룹6 특이사항), SECONDARY-ORPHANS-REMAINING-CONSTANTS-M386_20260916.md
 - (2026-09-16 갱신, M387) 첫 번째 항목(`validate_parsed_sql()`/
   `_ok_result()`)은 SECOND-PASS-AUDIT-PRIORITY-FIX-M373-REMAINING
   파트B에서 참조 0건 재확인 후 삭제 완료(`_func_example()`은 이 backlog
