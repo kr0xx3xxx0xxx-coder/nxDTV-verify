@@ -11022,69 +11022,14 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   MERGE-WALK-REMOVAL-FOLLOWUP-PUSH-M377-BACKLOG_20260915.md,
   UNSORTED-CHUNK-PK-LOOKUP-COVERAGE-GAPS-M381-M382_20260915.md
 
-### M383. 재확인 완료(2026-09-16, 실행은 보류) - MYSQL-MARIADB-CONNECT-NOT-IMPLEMENTED - MySQL/MariaDB 어댑터에 connect() 자체가 구현돼 있지 않아 라이브 쿼리 실행(COUNT/통계검증/커넥션 풀링 포함)이 전부 불가능
-- NON-PG-CONNECTION-POOLING-ORACLE-MSSQL-EXTEND-M371 작업(Oracle/MSSQL
-  커넥션 풀링 확장) 도중 재확인 — `services/db_adapters/mysql.py`,
-  `mariadb.py` 어댑터 모두 `connect()` override 가 없어
-  `BaseDbmsAdapter.connect()` 기본 구현(`RuntimeError("connect 미지원")`)
-  으로 떨어진다. Oracle(`oracledb`)/MSSQL(`pyodbc`)은 이미 실 DSN
-  connect() 가 구현돼 있는 것과 대비된다 — MySQL/MariaDB 는 커넥션
-  풀링 이전에 **라이브 접속 자체가 코드베이스에 없다**(COUNT/통계검증/
-  실행 경로 전부 이 지점에서 막힘). 이번 M371 은 지침 범위상 명시적으로
-  손대지 말라고 지정되어 조치하지 않았다.
-- 사실관계는 F23(2026-08-06 갱신, 해결완료 상태) 잔여 노트에 이미
-  기록돼 있으나, F23 은 "키메타 조회" 항목이 주제라 이 사실이 묻혀
-  보이기 쉽다 — 별도 open 항목으로도 등록해 가시성을 높인다(중복
-  조사 아님, F23 과 동일 사실의 재등록).
-- 대응 방향: `db_connection_service._test_mysql`/`_test_mariadb`(연결
-  테스트 로직 존재 여부 확인 필요) 또는 신규 pymysql/mariadb-connector
-  기반 `connect()` 를 오라클/MSSQL 어댑터와 동일한 인터페이스로 이식.
-- 근거: NON-PG-CONNECTION-POOLING-ORACLE-MSSQL-EXTEND-M371_20260915.md,
-  F23(IS-PK-FIXED-VALUE-CANDIDATE-RECOMMENDATION-FIX.txt §11-R3/§8)
-- **2026-09-16 재조사(MYSQL-CONNECT-MISSING-M383-AND-BATCH-ROUTE-THIRD-TRY)
-  결과 — 위 사실관계를 코드 직접 열람으로 재확인(추측 아님):**
-  - `MySQLAdapter`/`MariaDBAdapter` 모두 `supports_connect()`/`connect()`
-    override 없음(base 상속 그대로) — connect 미구현 재확인.
-  - **이미 마련된 안전장치 확인**: (1) 개별검증 실행 가드
-    `ui/tabler_renderer.py:_singleExecGuard`(`_EXEC_OK = {postgresql,
-    oracle}`)가 COUNT/통계검증 실행을 MySQL/MariaDB/MSSQL/DB2 전부에
-    대해 클라이언트에서 사전 차단하며 "현재 MariaDB/MySQL/MSSQL/DB2
-    검증 실행은 아직 지원 범위가 아닙니다" 안내를 이미 표시 중.
-    (2) DB 프로필 "접속 테스트" 화면도 MySQL 은 `_CONN_TEST_DBS`
-    allowlist에서 이미 제외돼 "현재 MySQL 실제 접속 테스트는 아직
-    지원하지 않습니다. 프로필 저장은 가능합니다"로 차단 안내 중 —
-    즉 "선택은 되는데 실행 시점에야 실패"라는 우려는 이 두 경로에서는
-    이미 상당히 해소돼 있음.
-  - **새로 발견한 불일치(M388으로 별도 등록)**: `routes/batch_route.py`
-    의 배치 업로드 전용 `_db_connect()`(메타/샘플 수집용, 실행과는
-    별개 경로)는 `db_type=='mysql'` 일 때 어댑터 레지스트리를 거치지
-    않고 pymysql로 **실제로 연결에 성공**한다 — "라이브 접속 자체가
-    코드베이스에 없다"는 원 서술은 정확히는 "실행(COUNT/통계검증)
-    체크포인트에는 없다"로 좁혀야 정확함. 상세는 M388.
-  - **구현 필요성 판단(파트A 결론)**: "필요 없음(수요 없음)"으로
-    단정하지 않음 — `requirements.txt`에 `pymysql==1.1.3　# MariaDB/
-    MySQL`이 이미 프로덕션 고정 의존성으로 박혀 있고(우연이 아니라
-    애초에 지원 의도가 있었다는 정황), 연결테스트·업로드 메타수집
-    두 경로는 이미 pymysql로 동작 중이라 "마지막 한 조각"(실행
-    어댑터 connect())만 비어 있는 상태다. 다만 이번 지침 지시대로
-    **구현은 실행하지 않고 범위/난이도만 제시**한다:
-    1) `MySQLAdapter.connect()`: `postgresql.py`/`oracle.py` connect()와
-       동일 패턴으로 pymysql.connect(host/port/dbname/user/password,
-       connect_timeout) 이식 — 코드량 자체는 15~20줄 수준(소).
-    2) `MariaDBAdapter.connect()`: 드라이버 동일(pymysql) — 유사 소규모.
-    3) `routes/batch_route.py::_db_connect()`의 mysql(및 postgresql)
-       분기를 oracle/mssql처럼 `_open_real_connection`(어댑터 단일
-       위임점) 경유로 통일 — 중복 커넥션 로직 제거(구조 정리, 중).
-    4) 이 프로젝트 기존 관례(모든 어댑터 docstring의 "실DB 검증
-       완료" 표기)상, `supports_connect()=True`로 전환하려면 실제
-       MySQL/MariaDB 인스턴스로 COUNT/통계검증/timeout/키메타 전체
-       End-to-End 검증이 선행돼야 함 — 이 실측 작업이 전체 공수의
-       대부분을 차지할 것으로 예상(대).
-    5) `_singleExecGuard`/`_EXEC_OK`, `STATS_CROSS_DBMS_PAIRS` 등
-       실행 허용 표에 mysql/mariadb 추가 반영(소~중).
-    → 전체 난이도: 중~대(주로 4번 실DB 검증 공수). 코드 자체 이식은
-       작지만, 프로젝트가 요구하는 "실DB 검증 완료" 기준을 채우는
-       과정이 관건 — **다음 지침에서 별도 승인 후 진행 권장**.
+### M383. ✅ 해결 완료(2026-09-16) - MYSQL-MARIADB-CONNECT-NOT-
+IMPLEMENTED - 구현하지 않기로 최종 확정. 실행(COUNT/통계검증) 경로는
+이미 화면에서 차단·안내 중(`_singleExecGuard`, DB 접속테스트
+allowlist)이라 추가 UI 작업도 불필요. CLAUDE.md 37번 규칙(Oracle/
+PostgreSQL만 신규 지원)으로 향후 구현 계획 자체가 없음을 확정.
+조사 중 발견된 배치 업로드 경로의 커넥션 불일치/죽은코드는 M388로
+별도 분리됨. 근거: MYSQL-CONNECT-MISSING-M383-AND-BATCH-ROUTE-
+THIRD-TRY_20260916.md
 
 ### M385. ✅ 해결 완료(2026-09-16) - DIALECT-SHIM-FILES-FULLY-DEAD-STRUCTURAL-REMOVAL - `services/dialects/{postgresql,oracle,mysql,mssql}_dialect.py` 4개 shim 파일이 통째로 사장 상태(모듈 import 0건)
 - M372(고아 함수 48건 개별 검토) 그룹3 조사 중 발견. `resolve_{oracle,
