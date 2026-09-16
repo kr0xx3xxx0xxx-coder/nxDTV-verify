@@ -11466,35 +11466,10 @@ THIRD-TRY_20260916.md
   · 코드 변경 없음(git diff 없음).
   · 근거: G:\내 드라이브\nxDTV-verify\reports\M390-BATCH-GROUP-ID-MISSING-PERSIST-CONFLICT-INVESTIGATE-THEN-FIX_20260916.md
 
-**아이디어(우선순위 높음, 정확성 결함) - M391-STATS-VALIDATOR-CONFIDENCE-FAIL-OPEN-BUG**
-- `validator/stats_validator.py::_assess_confidence`(운영 경로)의
-  실제 코드: `if parsed_sql is None: return CONFIDENCE_HIGH  # parsed_sql
-  없이도 실행 가능`. 그런데 같은 함수의 docstring에는
-  "FAIL: parsed_sql 없음(파싱 실패)"라고 정반대로 적혀 있다 —
-  코드와 문서가 모순되고, 실제 동작은 **파싱 실패를 신뢰도 "높음"으로
-  둔갑시키는 fail-open**이다.
-- 같은 프로젝트 안에 이 로직의 독립 구현이 최소 4벌 존재(모두 성격이
-  조금씩 다름): `services/analyze_service._cmn_assess_confidence`
-  (운영 경로, 파싱오류/빈매핑/서브쿼리 FROM → 정상적으로 FAIL 처리),
-  `samples/test_complex_cases._assess_confidence`(위와 사실상 동일),
-  `samples/test_virtual_cases._assess_confidence`(FROM이 SELECT로
-  시작하는 검사가 빠짐 — 이것도 별도 확인 필요할 수 있음),
-  `validator/stats_validator._assess_confidence`(위 fail-open 결함
-  발생처).
-- 발견 경위: 별도 자바 포팅 실험(nxDTV_java, JSQLParser 기반)이 이
-  로직을 이식하려고 4벌을 나란히 비교하다 확인. 원본 nxDTV 회귀
-  스위트(samples/test_virtual_cases.py, samples/test_complex_cases.py)
-  13개 케이스 중 이 fail-open을 잡아내는 케이스가 하나도 없어(진짜
-  파싱 실패가 나는 케이스 자체가 없음), 지금까지 미발견 상태로 남아
-  있었을 가능성이 높다.
-- 제안: (1) `stats_validator.py`의 코드를 docstring 의도(FAIL)에
-  맞게 수정할지, 문서를 실제 코드에 맞게 고칠지는 실제 운영 영향(이
-  경로가 실사용 중인지, 얼마나 자주 parsed_sql이 None이 되는 상황이
-  실제로 발생하는지)을 먼저 확인 후 결정 필요. (2) 4벌로 흩어진 신뢰도
-  판정 로직 자체도 오늘 SQL 해시/커넥션풀 때와 같은 종류의 중복
-  문제이니, 하나로 통합할 가치가 있는지도 별도 검토 여지.
-- 근거: nxDTV_java 실험 세션의 P5 최종 보고(2026-09-16, 이 채팅에서
-  사용자가 직접 전달).
+(2026-09-16, STATS-VALIDATOR-CONFIDENCE-FAIL-OPEN-FIX: 이 자리의 초안이
+  "M391"을 자칭했으나 그 번호는 바로 아래 SAMPLES-TEST-VALIDATION-
+  HISTORY-STALE-TABLE-NAME-FIX 항목이 이미 쓰고 있어 충돌 — 정식
+  M392로 정정해 파일 끝에 해결완료 항목으로 재등록하고 이 자리는 비움)
 
 ### M391. 아이디어(미착수) - SAMPLES-TEST-VALIDATION-HISTORY-STALE-TABLE-NAME-FIX - samples/test_validation_history_service.py TC-19 이후가 존재하지 않는 테이블명(validation_run)을 참조해 크래시, 508a9bbd DTV_ 이름변경 이후 파일만 미갱신된 무관 선재 결함
 - VALIDATION-HISTORY-SQL-HASH-MIGRATION-IMPLEMENT-M368 수행 중 회귀 테스트로
@@ -11520,3 +11495,44 @@ THIRD-TRY_20260916.md
   history_run` 단순 문자열 치환 7곳으로 트리비얼하나, 사용자 승인 후
   별도 지침으로 진행 필요.
 - 근거: G:\내 드라이브\nxDTV-verify\reports\VALIDATION-HISTORY-SQL-HASH-MIGRATION-IMPLEMENT-M368_20260916.md
+
+### M392. ✅ 해결 완료(2026-09-16) - STATS-VALIDATOR-CONFIDENCE-FAIL-OPEN-FIX - `validator/stats_validator.py::_assess_confidence`의 parsed_sql=None → CONFIDENCE_HIGH 오판(docstring "FAIL"과 모순되는 fail-open)을 FAIL로 수정
+- (최초 등록 초안이 "M391"을 잘못 자칭 — 그 번호는 SAMPLES-TEST-
+  VALIDATION-HISTORY-STALE-TABLE-NAME-FIX가 선점 중이라 M392로 정정)
+- 결함 내용: `validator/stats_validator.py::_assess_confidence`(운영
+  경로)의 실제 코드는 `if parsed_sql is None: return CONFIDENCE_HIGH
+  # parsed_sql 없이도 실행 가능`이었으나, 같은 함수 docstring은
+  "FAIL: parsed_sql 없음(파싱 실패)"라고 정반대로 적혀 있어 코드와
+  문서가 모순됐고, 실제 동작은 파싱 실패를 신뢰도 "높음"으로
+  둔갑시키는 fail-open이었다.
+- 같은 로직의 독립 구현이 최소 4벌 존재: `services/analyze_service.
+  _cmn_assess_confidence`(운영 경로, 파싱오류/빈매핑/서브쿼리 FROM →
+  정상 FAIL 처리), `samples/test_complex_cases._assess_confidence`
+  (위와 사실상 동일), `samples/test_virtual_cases._assess_confidence`
+  (FROM이 SELECT로 시작하는 검사가 빠짐 — 별도 확인 필요할 수 있음,
+  이번 범위 밖이라 미해결), `validator/stats_validator._assess_
+  confidence`(이번에 수정한 대상).
+- 발견 경위: 별도 자바 포팅 실험(nxDTV_java, JSQLParser 기반)이 이
+  로직을 이식하려고 4벌을 나란히 비교하다 확인. 원본 nxDTV 회귀
+  스위트 13개 케이스 중 이 fail-open을 잡아내는 케이스가 하나도
+  없어 지금까지 미발견 상태로 남아 있었을 가능성이 높다.
+- ✅ 해결 완료(2026-09-16): 파트A 조사 — `StatsValidator`는 웹 실행
+  흐름과 미연결된 CLI 전용 모듈(`main.py`가 유일한 실사용 호출자,
+  `tests/test_single_execute_result_stability_bundle.py`가 미연결
+  상태를 고정 단언)이고, `main.py`에서는 `SqlParser.parse()`가 항상
+  `ParsedSql`을 반환해 `parsed_sql=None` 분기가 실사용 경로에서
+  발생하지 않음을 확인 → 안전하게 수정 가능 판정. 파트B — `_assess_
+  confidence`의 `parsed_sql is None` 분기를 `CONFIDENCE_HIGH` →
+  `CONFIDENCE_FAIL`로 수정(다른 3벌 구현과 동일 판정 기준으로 통일,
+  새 판정 기준 발명 없음). git worktree로 수정 전/후 대조 —
+  수정 전(HEAD f1dbfd60): `parsed_sql=None` → `HIGH`(오판) 재현,
+  수정 후: `FAIL`(정상) 확인. 정상 파싱(HIGH)/DECODE(LOW) 케이스
+  무회귀 확인. 회귀 스위트: samples/test_virtual_cases.py 8/8 통과,
+  samples/test_complex_cases.py 5/5 통과, validator/test_full_
+  validator.py 전체 통과, validator/test_stats_validator.py는 수정과
+  무관한 기존 실패 2건(SQLite STDDEV 함수 미지원)이 수정 전/후
+  동일하게 남아 무관함을 worktree 대조로 확인. 커밋 81385bf3(nxDTV
+  코드 저장소, push 완료). 4벌 로직 통합 여부는 별도 검토 과제로
+  미착수 유지.
+- 근거: nxDTV_java 실험 세션 P5 최종 보고(2026-09-16, 사용자 전달) +
+  G:\내 드라이브\nxDTV-verify\reports\STATS-VALIDATOR-CONFIDENCE-FAIL-OPEN-FIX_20260916.md
