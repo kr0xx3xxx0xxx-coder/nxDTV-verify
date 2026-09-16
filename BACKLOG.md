@@ -10843,7 +10843,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   폭넓은 동작 변경 — 사용자 확인 필요). 코드 저장소 커밋 36391828.
 - 근거: G:\내 드라이브\nxDTV-verify\reports\EXECUTION-REUSE-PART5-6-7-FORCE-OVERRIDE-AND-FINAL-VERIFY-M366_20260916.md
 
-### M367. 아이디어(미착수) - 조사 완료(2026-09-16), 위험 실재 확인 - STATS-EXECUTE-RESULT-PLAN-VERSION-HISTORY-GAP - plan 재생성 시 배치 재사용 게이트의 SQL 비교가 "항상 일치"로 무력화되는 실재 결함(개별검증은 면역)
+### M367. ✅ 해결 완료(2026-09-16) - STATS-EXECUTE-RESULT-PLAN-VERSION-HISTORY-GAP - plan 재생성 시 배치 재사용 게이트의 SQL 비교가 "항상 일치"로 무력화되는 실재 결함(개별검증은 면역)
 - 조사 결과 "이론적 허점"이 아니라 **재현 가능한 실재 결함**으로 확인됐고,
   원 서술보다 더 심각하다. 배치 재사용 게이트는 "이번 SQL"도 plan snapshot
   에서 읽고(batch_stats_execute_service.py:827-828, :978-981) "당시 SQL"도
@@ -10888,6 +10888,35 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   비권장.
 - 근거: EXECUTION-REUSE-PART1-LAST-SUCCESS-LOOKUP-FUNCTIONS_20260915.md,
   PLAN-VERSION-HISTORY-GAP-INVESTIGATE-M367_20260916.md
+- 실행 완료(2026-09-16, M367-BATCH-STATS-EXECUTE-REUSE-GATE-SELF-COMPARE-FIX):
+  권장 조치A(근본 수정)+조치B(병행) 그대로 구현. 파트A: stats_execute_result에
+  source_sql_hash/target_sql_hash TEXT 컬럼을 기존 ALTER TABLE 보강 패턴
+  (_ensure_auto_save_columns와 동일 골격, 새 함수 _ensure_sql_hash_columns)으로
+  추가, _save_plan_result()가 실행에 실제 쓴 SQL(summary_json.source_sql/
+  target_sql, _execute_one_plan/_copy_reused_batch_execute_result 둘 다 보존)의
+  query_hash_or_raw_fallback() 값을 이 두 컬럼에 기록하도록 수정.
+  find_last_success_batch_run()의 plan snapshot 재조회 로직(자기비교 원인)을
+  제거하고 find_last_success_single_run()과 동일하게 저장된 해시끼리 직접
+  비교하도록 수렴. 기존 저장 행은 해시 NULL이라 자연히 비교 불성립→재실행
+  폴백(마이그레이션 불필요, 설계대로).
+  파트B(재사용 배지)는 착수 시점에 이미 해결되어 있었다 — 같은 날 먼저 완료된
+  M366 파트B(커밋 a2eaa312, 13:47경)가 "통계검증 실행 이력"(대상별) 그리드를
+  포함한 3개 화면에 동일 배지를 이미 배선했고, 본 지침 착수 시점(그 이후)
+  기준으로는 코드 미수정으로 요건이 이미 충족된 상태였다(중복 구현 없이
+  스크린샷 증적으로 재확인만 수행).
+  PoC 재현(직접 실증): 이번 수정 커밋 전 코드로 격리 git worktree를 만들어
+  새 회귀테스트(test_batch_plan_regenerated_same_id_returns_none_poc — plan
+  v1 성공 저장 → 같은 plan_id를 GROUP BY만 바꿔 v2로 UPSERT 재생성 → v2 SQL로
+  재실행 시도)를 실행한 결과, 수정 전 코드는 실제로 "재사용(match)"을 반환해
+  결함을 실측 재현했다(AssertionError: LastSuccessRunLookup(...) is not None).
+  동일 테스트를 수정 후 코드로 재실행하면 기대대로 None(재실행)을 반환한다.
+  정상 재사용(진짜 동일 SQL 재실행) 무회귀는 test_batch_found_and_matched·
+  test_second_run_same_sql_reused_no_actual_execute로 확인.
+  회귀: samples/test_virtual_cases.py 8/8, samples/test_complex_cases.py 5/5,
+  execution-reuse 관련 스위트(test_execution_reuse_lookup.py 9/9[신규 2건 포함]·
+  test_batch_execution_reuse_gate.py 4/4·test_execution_reuse_gate.py·
+  test_execution_reuse_force_rerun.py·test_execution_reuse_integration_part7.py
+  포함 총 25/25) 전부 통과.
 
 ### M368. ✅ 해결 완료(2026-09-16) - VALIDATION-HISTORY-SERVICE-SQL-HASH-FORMAT-MIGRATION - `validation_history_service.py`의 SQL해시 방식이 canonical_sql_hash와 형식·job 연속성 계약이 달라 이번 통합에서 의도적으로 제외됐던 항목, 실제 영향 추적 결과 전환 안전하나 완료 모듈이라 승인 필요
 - job_id(=build_sql_hash(src_sql))의 실제 소비처를 전부 추적한 결과, 시간축을
