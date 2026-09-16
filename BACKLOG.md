@@ -10769,12 +10769,27 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   실효성이 없을 가능성) — 별도 재현·계측 필요.
 - 근거: PK-RANGE-CHUNK-HANG-ROOT-CAUSE-FIXABILITY-CHECK-ONLY_20260915.md
 
-### M366. 아이디어(미착수) - EXECUTION-REUSE-PART4-7-REMAINING - "직전 성공 실행 재사용" 기능 중 파트1 완료/파트2-3 진행중 이후 남은 파트4~7 순차 진행 필요
+### M366. 진행중(파트1·2-3·4 완료 / 파트5-7 남음) - EXECUTION-REUSE-PART4-7-REMAINING - "직전 성공 실행 재사용" 기능 중 파트1 완료/파트2-3 진행중 이후 남은 파트4~7 순차 진행 필요
 - "직전 성공 실행 재사용" 기능 중 파트1(조회함수, 완료)/파트2-3(게이트+복사,
   진행중) 이후 남은 파트4(원본 실행시각 배지 표시)/파트5(화면 다중선택
   강제 재실행 UI)/파트6(엑셀 강제재실행 컬럼)/파트7(통합 회귀) — 순차 진행
   필요.
 - 근거: EXECUTION-TIME-REUSE-WITH-TIMESTAMP-AND-FORCE-OVERRIDE-DESIGN_20260915.md
+- 파트2-3(게이트+복사)는 이후 M378(배치 통계검증 실행 재사용 게이트 배선,
+  커밋 c3aa01c5)로 완료됨 — 위 "진행중" 표기는 그 시점 기준 기록.
+- ✅ 파트4 해결 완료(2026-09-16): is_reused_result=True 결과의 원본
+  실행시각 배지를 3곳에 노출 — 개별검증 결과확인 화면(배너), 일괄 5단계
+  "저장 결과 조회"(재사용 대상 건수 집계), "통계검증 실행 이력"(대상별
+  1줄). 백엔드는 이미 존재하는 필드(single_validation_run_facade.py,
+  batch_stats_execute_service.py)를 화면 계층까지 옮겨 담기만 함(재판정/
+  재계산 없음). 정상(비재사용) 결과는 배지 없음(무회귀) 확인. 실 Postgres
+  DB 미접속(자격증명 없음)으로 완전 E2E(같은 대상 2회 실행) 재현은
+  불가했고, 대신 실제 프로덕션 렌더 함수에 실제 백엔드가 만드는 것과
+  동일 shape의 결과 객체를 주입해 브라우저 실측(실검증 상태 아님, 사유
+  명시). 회귀(virtual 8/8, complex 5/5, 배치 UI 관련 pytest 81/82 — 1건은
+  무관한 기존 결함) 통과. 코드 저장소 커밋 a2eaa312. 남은 파트5(다중선택
+  강제 재실행 UI)/파트6(엑셀 강제재실행 컬럼)/파트7(통합 회귀)는 별도
+  지침 필요. 근거: G:\내 드라이브\nxDTV-verify\reports\BATCH-RESULT-DISPLAY-DUAL-PATH-CLARITY-AND-REUSE-BADGE-M380-M366_20260916.md
 
 ### M367. 아이디어(미착수) - STATS-EXECUTE-RESULT-PLAN-VERSION-HISTORY-GAP - stats_execute_result가 plan_id로 매번 최신 plan snapshot을 재조회하는 구조라 plan 재생성 시 "당시 SQL"과 어긋날 수 있는 이론적 허점
 - stats_execute_result가 plan_id로 매번 최신 plan snapshot을 재조회하는
@@ -10972,7 +10987,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: BATCH-STATS-EXECUTE-SERVICE-VS-SHARED-FACADE-ARCHITECTURE-
   VERIFY_20260915.md
 
-### M380. 참고(문서/화면 정합성) - BATCH-STATS-EXECUTE-DUAL-PATH-UI-CLARITY - 일괄검증 4·5단계에 실행 버튼 2개/결과 카드 2개가 동시 노출되나 어느 쪽이 최신·정식 경로인지 화면 표시 없음
+### M380. ✅ 해결 완료(2026-09-16) - BATCH-STATS-EXECUTE-DUAL-PATH-UI-CLARITY - 일괄검증 4·5단계에 실행 버튼 2개/결과 카드 2개가 동시 노출되나 어느 쪽이 최신·정식 경로인지 화면 표시 없음
 - 일괄검증 4단계 같은 카드 영역에 실행 버튼 2개(전체 통계검증 실행
   vs 안전 계획 실행 LOW/MEDIUM), 5단계에 결과 카드 2개
   (batchWrapperResultCard vs batchExecHistoryCard)가 동시 노출되나
@@ -10981,6 +10996,13 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   무관하게 별도로 개선 가능.
 - 근거: BATCH-STATS-EXECUTE-SERVICE-VS-SHARED-FACADE-ARCHITECTURE-
   VERIFY_20260915.md
+- ✅ 해결 완료(2026-09-16): 정식 경로(전체 통계검증 실행 → 저장 결과
+  조회)는 그대로 두고, 보조 경로(안전 계획 실행 LOW/MEDIUM 버튼 옆, 및
+  그 결과 카드 "통계검증 실행 이력" 헤더)에 "보조 경로" 배지(title
+  속성에 근거 명시)만 추가. 순수 표시 배지, 기능/판정 로직 변경 없음.
+  회귀(virtual 8/8, complex 5/5, 배치 UI 관련 pytest 81/82 — 1건은 무관한
+  기존 결함) 통과, 브라우저 실측(수정 전/후 스크린샷 대조) 확인. 코드
+  저장소 커밋 e4a9332b. 근거: G:\내 드라이브\nxDTV-verify\reports\BATCH-RESULT-DISPLAY-DUAL-PATH-CLARITY-AND-REUSE-BADGE-M380-M366_20260916.md
 
 ### M381. ✅ 해결 완료 - UNSORTED-CHUNK-PK-LOOKUP-PROGRESS-CB-REGRESSION-TEST-MISSING - `run_unsorted_chunk_pk_lookup_compare`의 progress_cb 단조증가/basis 초기화 자체 회귀 테스트 부재
 - MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL(M364)로 불일치 레코드
