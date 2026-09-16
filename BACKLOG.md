@@ -10889,7 +10889,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: EXECUTION-REUSE-PART1-LAST-SUCCESS-LOOKUP-FUNCTIONS_20260915.md,
   PLAN-VERSION-HISTORY-GAP-INVESTIGATE-M367_20260916.md
 
-### M368. 조사·설계 완료(2026-09-16) - 실행은 별도 승인 대기 - VALIDATION-HISTORY-SERVICE-SQL-HASH-FORMAT-MIGRATION - `validation_history_service.py`의 SQL해시 방식이 canonical_sql_hash와 형식·job 연속성 계약이 달라 이번 통합에서 의도적으로 제외됐던 항목, 실제 영향 추적 결과 전환 안전하나 완료 모듈이라 승인 필요
+### M368. ✅ 해결 완료(2026-09-16) - VALIDATION-HISTORY-SERVICE-SQL-HASH-FORMAT-MIGRATION - `validation_history_service.py`의 SQL해시 방식이 canonical_sql_hash와 형식·job 연속성 계약이 달라 이번 통합에서 의도적으로 제외됐던 항목, 실제 영향 추적 결과 전환 안전하나 완료 모듈이라 승인 필요
 - job_id(=build_sql_hash(src_sql))의 실제 소비처를 전부 추적한 결과, 시간축을
   넘어 job_id 값이 같아야만 동작하는 조회/화면 경로는 0건(FK는 저장 시점 값을
   그대로 자기참조 JOIN, UI 필터는 target_table/session_id 등만 사용, job_id
@@ -10906,6 +10906,36 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   까지만 — 코드 미수정).
 - 근거: CODEBASE-AUDIT-SAFE-CONSOLIDATION-FIXES-IMPLEMENT_20260915.md,
   VALIDATION-HISTORY-SQL-HASH-MIGRATION-DESIGN-M368_20260916.md
+- 실행 완료(2026-09-16, VALIDATION-HISTORY-SQL-HASH-MIGRATION-IMPLEMENT-M368):
+  설계안 그대로 구현. `build_sql_hash(migration_sql, dbms="postgresql")`로
+  시그니처 확장 후 내부를 `single_run_condition.query_hash_or_raw_fallback`
+  위임으로 교체(새 로직 작성 없음), 470행 호출부는 `req.src_db.db_type`
+  우선·없으면 postgresql 폴백으로 dbms 전달. persistence_verifier.py:170-171
+  재확인 결과 무인자 대칭 호출 그대로라 무변경. TC-9/10/11을 "32자(canonical)
+  또는 raw_+24자(폴백)" 검증으로 교체(SQL-HASH-FINAL-ELIMINATION과 동일 패턴).
+  회귀: 레거시 필수 스위트 2종 전부 통과, tests/test_history_run_seq.py·
+  test_storage_unify_history.py 각 단독 전부 통과, test_persistence_evidence.py
+  단독 14건 중 13건 통과(1건 test_idempotency_dup_prevention_maintained은
+  baseline(변경 전 HEAD)에서도 동일하게 실패하는 기존 무관 결함, 이번 변경
+  영향 아님 — worktree로 baseline 재현해 직접 대조 확인). samples/test_
+  validation_history_service.py는 TC-19부터 `SELECT * FROM validation_run`
+  (실제 테이블명은 DTV_validation_history_run) 참조로 크래시하는데, 이 역시
+  508a9bbd(DTV_ 이름변경 커밋) 이후 파일이 갱신 안 된 완전 무관·선재
+  결함(baseline에서 동일 크래시 재현 확인, 이번 변경과 무관 — 별도 M391로
+  등록, 이번 지침 범위 밖이라 수정 안 함). 대신 scratchpad 임시 사본으로
+  테이블명만 고쳐 TC-1~86(187건) 전량 통과 확인 후 사본은 삭제(커밋 대상
+  아님). 5단계(과거 데이터 무backfill)는 설계 근거대로 미실행 확정, 기존
+  DTV_validation_job row는 손대지 않음. E2E: 실 Source/Target DB 접속정보가
+  이 세션에 없어(.env 없음) 실제 DB round-trip은 불가했으나, /execute
+  라우트가 실제로 호출하는 save_stats_validation_history를 진짜
+  ExecuteRequest(pydantic) 인스턴스로 직접 호출해 (1)최초 실행 시 job_id가
+  32자 canonical hex로 저장됨, (2)동일 SQL 재실행 시 job_id 불변·set 1개에
+  run만 2건 누적(설계 예측과 일치, 무해한 신규 중복 없음), (3)oracle
+  db_type으로도 정상 저장됨, (4)list_recent_validation_runs/
+  get_validation_run/get_validation_sets_by_session_id(history_route가
+  쓰는 조회 함수) 전부 정상 조회(run_seq 1/2 반영 포함) 확인. UI 화면 요소
+  변경은 없음(27번 규칙 대상 아님).
+- 근거: G:\내 드라이브\nxDTV-verify\reports\VALIDATION-HISTORY-SQL-HASH-MIGRATION-IMPLEMENT-M368_20260916.md
 
 ### M369. 아이디어(미착수) - CANONICAL-SQL-FOLDING-MYSQL-MSSQL-SUPPORT - 식별자 대소문자 폴딩이 Oracle/PostgreSQL만 적용되고 MySQL/MSSQL은 규칙 미확정으로 보류됨
 - 식별자 대소문자 폴딩이 Oracle/PostgreSQL만 적용되고 MySQL(서버설정
@@ -11436,3 +11466,28 @@ THIRD-TRY_20260916.md
   문제이니, 하나로 통합할 가치가 있는지도 별도 검토 여지.
 - 근거: nxDTV_java 실험 세션의 P5 최종 보고(2026-09-16, 이 채팅에서
   사용자가 직접 전달).
+
+### M391. 아이디어(미착수) - SAMPLES-TEST-VALIDATION-HISTORY-STALE-TABLE-NAME-FIX - samples/test_validation_history_service.py TC-19 이후가 존재하지 않는 테이블명(validation_run)을 참조해 크래시, 508a9bbd DTV_ 이름변경 이후 파일만 미갱신된 무관 선재 결함
+- VALIDATION-HISTORY-SQL-HASH-MIGRATION-IMPLEMENT-M368 수행 중 회귀 테스트로
+  samples/test_validation_history_service.py 전체(TC-1~61)를 재실행하다 발견.
+  TC-3~6의 `check("validation_run 테이블 존재", "validation_run" in _tables)`
+  및 TC-19/21/22/24/37~45(라인 74/237/290/303/331/472/504)가 실제 테이블명
+  `DTV_validation_history_run` 대신 구 이름 `validation_run`을 직접 raw SQL로
+  참조한다. commit 508a9bbd("확정사용 DTV_ 이름변경 - 검증 실행/결과 11개
+  테이블")에서 서비스 코드는 테이블명을 바꿨지만 이 테스트 파일은 그때
+  갱신되지 않아, 그 이후로 TC-19에서 `sqlite3.OperationalError: no such
+  table: validation_run`로 즉시 크래시하며 TC-20~86(및 원래 TC-61까지의
+  나머지 전부)이 한 번도 실행되지 못하는 상태로 방치돼 있었다.
+- M368 작업 자체와는 완전 무관함을 git worktree로 baseline(변경 전 HEAD
+  36391828)에서 동일 스크립트를 재현해 동일하게 크래시함을 직접 확인했다
+  (이번 SQL 해시 전환이 유발한 회귀 아님).
+- 실제 서비스 함수 자체는 정상 동작함을 별도로 확인: 테스트 파일 사본에서
+  `validation_run` 문자열만 `DTV_validation_history_run`으로 치환해
+  scratchpad에서 실행한 결과 TC-1~86(187건 체크) 전량 통과. 즉 결함은
+  테스트 파일의 오래된 테이블명 참조 하나뿐, 실제 서비스 코드에는 없다.
+- 완료된 테스트 모듈이라 CLAUDE.md 단계별 작업 규칙상 임의 수정 금지 —
+  이번 지침 범위 밖이라 수정하지 않고 발견 사실만 기록. 수정 자체는
+  라인 74/237/290/303/331/472/504의 `validation_run` → `DTV_validation_
+  history_run` 단순 문자열 치환 7곳으로 트리비얼하나, 사용자 승인 후
+  별도 지침으로 진행 필요.
+- 근거: G:\내 드라이브\nxDTV-verify\reports\VALIDATION-HISTORY-SQL-HASH-MIGRATION-IMPLEMENT-M368_20260916.md
