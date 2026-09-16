@@ -11042,7 +11042,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
 - 근거: NON-PG-CONNECTION-POOLING-ORACLE-MSSQL-EXTEND-M371_20260915.md,
   F23(IS-PK-FIXED-VALUE-CANDIDATE-RECOMMENDATION-FIX.txt §11-R3/§8)
 
-### M385. 아이디어(미착수) - DIALECT-SHIM-FILES-FULLY-DEAD-STRUCTURAL-REMOVAL - `services/dialects/{postgresql,oracle,mysql,mssql}_dialect.py` 4개 shim 파일이 통째로 사장 상태(모듈 import 0건)
+### M385. ✅ 해결 완료(2026-09-16) - DIALECT-SHIM-FILES-FULLY-DEAD-STRUCTURAL-REMOVAL - `services/dialects/{postgresql,oracle,mysql,mssql}_dialect.py` 4개 shim 파일이 통째로 사장 상태(모듈 import 0건)
 - M372(고아 함수 48건 개별 검토) 그룹3 조사 중 발견. `resolve_{oracle,
   mysql,mssql}_dialect()` 3개가 이번 48건 목록에 있었으나, 실제로는
   postgresql까지 포함해 4개 dialect 전부 완전 대칭으로 고아 상태임을
@@ -11068,6 +11068,12 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   대상 아님 — 혼동 주의).
 - 근거: ORPHAN-48-FUNCTIONS-INDIVIDUAL-REVIEW-M372_20260915.md(그룹3
   상세 조사 결과)
+- ✅ 해결 완료(2026-09-16): 4개 파일 각각 import 0건 재확인(grep, 오늘
+  기준) 후 전부 삭제 + `docs/DIALECT_POLICY.md` §4 구조도의 해당 shim
+  블록 정리. 관련 단독 테스트 없음(0건). 회귀(virtual 8/8, complex 5/5)
+  전건 통과, 서버 재기동 후 정상 로드(import 오류 없음, HTTP 401
+  BasicAuth 응답으로 확인) 재확인. 코드 저장소 커밋 5e8c805e. 근거:
+  G:\내 드라이브\nxDTV-verify\reports\DIALECT-SHIM-FILES-FULLY-DEAD-STRUCTURAL-REMOVAL-M385_20260916.md
 
 ### M386. 부분 해결(함수 1건 삭제완료 2026-09-16, 상수 2건 미착수 유지) - M372-SECONDARY-ORPHANS-CLEANUP - M372 삭제 작업으로 파생된 2차 고아 코드 잔존(함수 1건 ~350줄 + 미사용 상수 2건)
 - M372 그룹6에서 `services/sql_validation_service.py`의
