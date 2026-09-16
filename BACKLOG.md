@@ -11276,7 +11276,7 @@ THIRD-TRY_20260916.md
 - 코드 저장소 커밋: 99bee1ed.
 - 근거: MYSQL-CONNECT-MISSING-M383-AND-BATCH-ROUTE-THIRD-TRY_20260916.md
 
-### M390. 아이디어(미착수, 우선순위 높음 — 정합성) - BATCH-OFFICIAL-PATH-GROUP-ID-NOT-WIRED-TO-REUSE-GATE - `batch_row_to_single_standard_request()`가 `SingleRunStandardRequest.group_id`를 채우지 않아 배치 공식경로에서 EXECUTION-REUSE(M366 전체) 재사용/강제재실행 게이트가 실질적으로 미작동
+### M390. 조사 완료 - 별도 설계 필요(보류, 우선순위 높음 — 정합성) - BATCH-OFFICIAL-PATH-GROUP-ID-NOT-WIRED-TO-REUSE-GATE - `batch_row_to_single_standard_request()`가 `SingleRunStandardRequest.group_id`를 채우지 않아 배치 공식경로에서 EXECUTION-REUSE(M366 전체) 재사용/강제재실행 게이트가 실질적으로 미작동
 - EXECUTION-REUSE-PART5-6-7-FORCE-OVERRIDE-AND-FINAL-VERIFY-M366 파트7
   통합검증(3종 혼재 배치 재현) 도중 발견. `services/batch_single_core_
   wrapper.py::batch_row_to_single_standard_request()`(:184-215)는
@@ -11320,3 +11320,38 @@ THIRD-TRY_20260916.md
   임시로 채워 재현 → 3종 혼재 시나리오가 기대대로 동작함을 확인 → 코드는
   되돌림(최종 커밋 36391828에는 미반영, git diff 없음).
 - 근거: G:\내 드라이브\nxDTV-verify\reports\EXECUTION-REUSE-PART5-6-7-FORCE-OVERRIDE-AND-FINAL-VERIFY-M366_20260916.md
+- 2026-09-16 파트A(충돌 위험 규명) 조사 완료, 지침
+  M390-BATCH-GROUP-ID-MISSING-PERSIST-CONFLICT-INVESTIGATE-THEN-FIX 실행:
+  · 배치 "공식 저장"은 services/validation_run/result_persistence_facade.py
+    persist_batch_row_results() → batch_wrapper_result_store.save_wrapper_
+    results() → 테이블 DTV_batch_wrapper_result(이미 정상 동작, req.group_id
+    와 무관).
+  · req.group_id 를 채우면 facade `_persist`(single_validation_run_facade.py:
+    1729)가 True 로 바뀌어 매 배치 row 마다 (a) DTV_validation_execution_run
+    신규 INSERT(단, group_id 컬럼은 채워지지 않음 — 아래 참고),
+    (b) 별도 SQLite 파일 validation_history.db 의 DTV_validation_history_run
+    (routes/history_route.py 가 그대로 "이력" 화면에 노출 — 배치 실행이
+    개별검증 이력 화면에 오염되어 보이는 실사용자 혼란 위험 확인),
+    (c) 고아 DTV_single_validation_snapshot(어떤 화면도 조회하지 않음, DB
+    무기한 누적) 3곳에 새로 기록을 만든다는 것을 코드로 확인.
+  · 결정적으로, 재사용 게이트가 조회하는 group_id 컬럼은
+    DTV_validation_execution_run 의 **1차(execute) INSERT** 가 아니라
+    개별검증의 **2차 저장(/single/save → persist_execution_bundle,
+    services/validation_result_store.py:679-798)** 에서만 채워지는데,
+    배치는 이 2차 경로를 전혀 호출하지 않는다 — 즉 원안(group_id 한 줄
+    추가)은 위 3가지 부작용을 감수해도 **재사용을 실제로 동작시키지
+    못한다**(목표 미달성 + 부작용만 발생).
+  · 지침이 제시한 절충안(group_id 는 채우되 _persist 는 배치에서 강제
+    False 유지)도, 재사용 게이트(`_try_reuse_last_success`)와 `_persist`
+    가 같은 변수 하나로 결합돼 있어 문자 그대로 적용 불가하며, 억지로
+    분리해도 group_id 가 여전히 DTV_validation_execution_run 에 기록될
+    경로가 없어 목표를 달성 못 함을 확인.
+  · 파트A 6번 판정: **(C)** — 실제로 고치려면 facade 의 "재사용-게이트
+    판단"과 "내부저장 실행"을 분리하는 리팩토링(완료 모듈 EXECUTION-
+    REUSE-PART2-3 변경) + 배치가 group_id 연결된 실행 이력을 어떻게 만들지
+    새 설계 결정, 둘 다 필요 — 예상보다 큰 리팩토링으로 판단해 파트B
+    (구현) 실행하지 않음. 제안 설계안(배치 전용 재사용 조회 함수를
+    DTV_batch_wrapper_result 기준으로 신설 + facade 파라미터 분리)은
+    완료보고에 기록, 착수는 별도 지침·사용자 승인 필요.
+  · 코드 변경 없음(git diff 없음).
+  · 근거: G:\내 드라이브\nxDTV-verify\reports\M390-BATCH-GROUP-ID-MISSING-PERSIST-CONFLICT-INVESTIGATE-THEN-FIX_20260916.md
