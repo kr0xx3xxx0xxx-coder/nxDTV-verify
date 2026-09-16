@@ -11386,7 +11386,7 @@ THIRD-TRY_20260916.md
 - 코드 저장소 커밋: 99bee1ed.
 - 근거: MYSQL-CONNECT-MISSING-M383-AND-BATCH-ROUTE-THIRD-TRY_20260916.md
 
-### M390. 조사 완료 - 별도 설계 필요(보류, 우선순위 높음 — 정합성) - BATCH-OFFICIAL-PATH-GROUP-ID-NOT-WIRED-TO-REUSE-GATE - `batch_row_to_single_standard_request()`가 `SingleRunStandardRequest.group_id`를 채우지 않아 배치 공식경로에서 EXECUTION-REUSE(M366 전체) 재사용/강제재실행 게이트가 실질적으로 미작동
+### M390. ✅ 해결 완료(2026-09-17) - BATCH-OFFICIAL-PATH-GROUP-ID-NOT-WIRED-TO-REUSE-GATE - `batch_row_to_single_standard_request()`가 `SingleRunStandardRequest.group_id`를 채우지 않아 배치 공식경로에서 EXECUTION-REUSE(M366 전체) 재사용/강제재실행 게이트가 실질적으로 미작동
 - EXECUTION-REUSE-PART5-6-7-FORCE-OVERRIDE-AND-FINAL-VERIFY-M366 파트7
   통합검증(3종 혼재 배치 재현) 도중 발견. `services/batch_single_core_
   wrapper.py::batch_row_to_single_standard_request()`(:184-215)는
@@ -11465,6 +11465,38 @@ THIRD-TRY_20260916.md
     완료보고에 기록, 착수는 별도 지침·사용자 승인 필요.
   · 코드 변경 없음(git diff 없음).
   · 근거: G:\내 드라이브\nxDTV-verify\reports\M390-BATCH-GROUP-ID-MISSING-PERSIST-CONFLICT-INVESTIGATE-THEN-FIX_20260916.md
+- 2026-09-17 ✅ **해결 완료**, 지침 M390-BATCH-OFFICIAL-PATH-REUSE-GATE-FIX 실행
+  (위 2026-09-16 조사가 제안한 설계안 1번을 그대로 채택·구현. 같은 날 앞서 완료된
+  M367(f1dbfd60)의 "비교 근거를 당시 실제 실행 SQL 의 저장된 해시로 수렴" 패턴을
+  DTV_batch_wrapper_result 테이블에 이식 — 9번 규칙):
+  · 파트A 재확인 결과: DTV_batch_wrapper_result 스키마(services/batch_wrapper_
+    result_store.py:29-54)에 해시 컬럼 없음 → ALTER TABLE 보강 가능 확인.
+    `_try_reuse_last_success`(facade:946, 호출부 :1759)는 `_persist`(:1729) 하나로
+    게이트+내부저장이 결합 → 주입 파라미터 1개 추가로 분리 가능(소규모) 확인.
+  · **조사가 짚지 못한 추가 발견**: 배치 공식경로는 조회 근거뿐 아니라 **복사 원본**도
+    없었다(내부저장을 안 하므로 DTV_single_validation_snapshot 이 생기지 않음 —
+    개별검증 재사용이 복사해 쓰는 바로 그 테이블). 그래서 해시 컬럼 2개만으로는
+    부족하고, 복원 payload 를 담을 컬럼(reuse_payload_json)이 함께 필요했다.
+  · 실제 조치(커밋 df04b82b, 8파일 +628/-23):
+    - `single_validation_run_facade.run_single_validation_standard()`에
+      `reuse_lookup_fn` 파라미터 신설 → "재사용-게이트 판단"과 "내부저장(_persist)
+      실행"을 분리. 주입 경로는 persist 를 보지 않는다(기존 개별검증 경로 무변경).
+    - `execution_reuse_lookup.find_last_success_batch_official_run()` 신설
+      (DTV_batch_wrapper_result 기준, 저장된 해시끼리 직접 비교).
+    - `batch_wrapper_result_store._ensure_reuse_columns()` — source_sql_hash /
+      target_sql_hash / reuse_payload_json 3개 ALTER TABLE 보강. 복원 payload 는
+      detail_json(6000자 절단·표시용)과 분리한 전용 컬럼에 두고 응답에는 싣지 않는다.
+    - `batch_single_core_wrapper` — 실행 증적(reuse_record) 생성, 자기 테이블 기준
+      조회 훅 주입, 복원(`_reuse_payload_to_exec_res`). `_persist` 는 계속 False 라
+      2026-09-16 조사가 경고한 3가지 부작용(개별검증 이력 화면 오염 / 고아
+      execution_run / 고아 스냅샷 누적)은 하나도 발생하지 않는다.
+    - 기존 저장 행은 새 컬럼 NULL → 자동으로 안전한 "재실행" 폴백(마이그레이션 불필요).
+  · 검증(격리 worktree 대조, tests/test_batch_official_reuse_gate.py 5건 신규):
+    수정 전(81385bf3) — 동일 SQL 재실행에도 실제 execute 1회(재사용 미작동 재현).
+    수정 후 — 동일 SQL 재실행 0회(재사용, is_reused_result=True),
+    GROUP BY/SUM 변경 재등록 후 1회(정확히 재실행 — M367 자기비교 결함 없음).
+    회귀: samples 8/8·5/5, execution-reuse 스위트 30/30 통과.
+  · 근거: G:\내 드라이브\nxDTV-verify\reports\M390-BATCH-OFFICIAL-PATH-REUSE-GATE-FIX_20260917.md
 
 (2026-09-16, STATS-VALIDATOR-CONFIDENCE-FAIL-OPEN-FIX: 이 자리의 초안이
   "M391"을 자칭했으나 그 번호는 바로 아래 SAMPLES-TEST-VALIDATION-
