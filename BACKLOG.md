@@ -11355,3 +11355,33 @@ THIRD-TRY_20260916.md
     완료보고에 기록, 착수는 별도 지침·사용자 승인 필요.
   · 코드 변경 없음(git diff 없음).
   · 근거: G:\내 드라이브\nxDTV-verify\reports\M390-BATCH-GROUP-ID-MISSING-PERSIST-CONFLICT-INVESTIGATE-THEN-FIX_20260916.md
+
+**아이디어(우선순위 높음, 정확성 결함) - M391-STATS-VALIDATOR-CONFIDENCE-FAIL-OPEN-BUG**
+- `validator/stats_validator.py::_assess_confidence`(운영 경로)의
+  실제 코드: `if parsed_sql is None: return CONFIDENCE_HIGH  # parsed_sql
+  없이도 실행 가능`. 그런데 같은 함수의 docstring에는
+  "FAIL: parsed_sql 없음(파싱 실패)"라고 정반대로 적혀 있다 —
+  코드와 문서가 모순되고, 실제 동작은 **파싱 실패를 신뢰도 "높음"으로
+  둔갑시키는 fail-open**이다.
+- 같은 프로젝트 안에 이 로직의 독립 구현이 최소 4벌 존재(모두 성격이
+  조금씩 다름): `services/analyze_service._cmn_assess_confidence`
+  (운영 경로, 파싱오류/빈매핑/서브쿼리 FROM → 정상적으로 FAIL 처리),
+  `samples/test_complex_cases._assess_confidence`(위와 사실상 동일),
+  `samples/test_virtual_cases._assess_confidence`(FROM이 SELECT로
+  시작하는 검사가 빠짐 — 이것도 별도 확인 필요할 수 있음),
+  `validator/stats_validator._assess_confidence`(위 fail-open 결함
+  발생처).
+- 발견 경위: 별도 자바 포팅 실험(nxDTV_java, JSQLParser 기반)이 이
+  로직을 이식하려고 4벌을 나란히 비교하다 확인. 원본 nxDTV 회귀
+  스위트(samples/test_virtual_cases.py, samples/test_complex_cases.py)
+  13개 케이스 중 이 fail-open을 잡아내는 케이스가 하나도 없어(진짜
+  파싱 실패가 나는 케이스 자체가 없음), 지금까지 미발견 상태로 남아
+  있었을 가능성이 높다.
+- 제안: (1) `stats_validator.py`의 코드를 docstring 의도(FAIL)에
+  맞게 수정할지, 문서를 실제 코드에 맞게 고칠지는 실제 운영 영향(이
+  경로가 실사용 중인지, 얼마나 자주 parsed_sql이 None이 되는 상황이
+  실제로 발생하는지)을 먼저 확인 후 결정 필요. (2) 4벌로 흩어진 신뢰도
+  판정 로직 자체도 오늘 SQL 해시/커넥션풀 때와 같은 종류의 중복
+  문제이니, 하나로 통합할 가치가 있는지도 별도 검토 여지.
+- 근거: nxDTV_java 실험 세션의 P5 최종 보고(2026-09-16, 이 채팅에서
+  사용자가 직접 전달).
