@@ -10849,12 +10849,23 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   되는 이론적 허점 — EXECUTION-REUSE 파트2/3 설계 시 고려 필요.
 - 근거: EXECUTION-REUSE-PART1-LAST-SUCCESS-LOOKUP-FUNCTIONS_20260915.md
 
-### M368. 아이디어(미착수, 사용자 판단 필요) - VALIDATION-HISTORY-SERVICE-SQL-HASH-FORMAT-MIGRATION - `validation_history_service.py`의 SQL해시 방식이 canonical_sql_hash와 형식·job 연속성 계약이 달라 이번 통합에서 의도적으로 제외됨
-- `validation_history_service.py`의 normalize_sql/build_sql_hash가
-  canonical_sql_hash와 형식(64자hex vs 32자)·job 연속성 계약이 달라 이번
-  SQL해시 통합에서 의도적으로 제외됨 — 전환하려면 별도의 마이그레이션 설계
-  (과거 job 이력과의 연속성 보존 방법) 필요.
-- 근거: CODEBASE-AUDIT-SAFE-CONSOLIDATION-FIXES-IMPLEMENT_20260915.md
+### M368. 조사·설계 완료(2026-09-16) - 실행은 별도 승인 대기 - VALIDATION-HISTORY-SERVICE-SQL-HASH-FORMAT-MIGRATION - `validation_history_service.py`의 SQL해시 방식이 canonical_sql_hash와 형식·job 연속성 계약이 달라 이번 통합에서 의도적으로 제외됐던 항목, 실제 영향 추적 결과 전환 안전하나 완료 모듈이라 승인 필요
+- job_id(=build_sql_hash(src_sql))의 실제 소비처를 전부 추적한 결과, 시간축을
+  넘어 job_id 값이 같아야만 동작하는 조회/화면 경로는 0건(FK는 저장 시점 값을
+  그대로 자기참조 JOIN, UI 필터는 target_table/session_id 등만 사용, job_id
+  자체를 노출/비교하는 화면 없음). persistence_verifier.py의 유일한 재계산
+  비교(170-171행)도 매번 대칭 재계산이라 포맷 변경에 영향받지 않음.
+- 결론: 전환은 "안전"하다 — 유일한 부작용은 과거 SQL을 재실행할 때
+  DTV_validation_job에 (기능상 무해한) 중복 row가 하나 더 생기는 것뿐이고,
+  이는 SQL-HASH-FINAL-ELIMINATION 등에서 이미 쓴 "신규부터만 새 방식 적용,
+  과거 데이터/backfill 없음" 전략을 그대로 적용하면 감수 가능한 수준. 실제
+  하드 블로커는 코드가 아니라 테스트(TC-9, 64자 hex 고정 검증) 하나뿐.
+  단계별 전환 계획(시그니처 확장 → 호출부 2곳 교체 → 테스트 갱신 → 회귀)까지
+  확정했으나, 대상 모듈이 이미 완료된 모듈이라 CLAUDE.md 단계별 작업 규칙상
+  실제 착수는 별도 지침으로 사용자 승인을 받아야 한다(이번 지침은 조사·설계
+  까지만 — 코드 미수정).
+- 근거: CODEBASE-AUDIT-SAFE-CONSOLIDATION-FIXES-IMPLEMENT_20260915.md,
+  VALIDATION-HISTORY-SQL-HASH-MIGRATION-DESIGN-M368_20260916.md
 
 ### M369. 아이디어(미착수) - CANONICAL-SQL-FOLDING-MYSQL-MSSQL-SUPPORT - 식별자 대소문자 폴딩이 Oracle/PostgreSQL만 적용되고 MySQL/MSSQL은 규칙 미확정으로 보류됨
 - 식별자 대소문자 폴딩이 Oracle/PostgreSQL만 적용되고 MySQL(서버설정
