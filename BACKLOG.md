@@ -10769,7 +10769,7 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   실효성이 없을 가능성) — 별도 재현·계측 필요.
 - 근거: PK-RANGE-CHUNK-HANG-ROOT-CAUSE-FIXABILITY-CHECK-ONLY_20260915.md
 
-### M366. 진행중(파트1·2-3·4 완료 / 파트5-7 남음) - EXECUTION-REUSE-PART4-7-REMAINING - "직전 성공 실행 재사용" 기능 중 파트1 완료/파트2-3 진행중 이후 남은 파트4~7 순차 진행 필요
+### M366. ✅ 해결 완료(파트1~7 전부, 2026-09-16) - EXECUTION-REUSE-PART4-7-REMAINING - "직전 성공 실행 재사용" 기능 중 파트1 완료/파트2-3 진행중 이후 남은 파트4~7 순차 진행 필요
 - "직전 성공 실행 재사용" 기능 중 파트1(조회함수, 완료)/파트2-3(게이트+복사,
   진행중) 이후 남은 파트4(원본 실행시각 배지 표시)/파트5(화면 다중선택
   강제 재실행 UI)/파트6(엑셀 강제재실행 컬럼)/파트7(통합 회귀) — 순차 진행
@@ -10790,6 +10790,58 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   무관한 기존 결함) 통과. 코드 저장소 커밋 a2eaa312. 남은 파트5(다중선택
   강제 재실행 UI)/파트6(엑셀 강제재실행 컬럼)/파트7(통합 회귀)는 별도
   지침 필요. 근거: G:\내 드라이브\nxDTV-verify\reports\BATCH-RESULT-DISPLAY-DUAL-PATH-CLARITY-AND-REUSE-BADGE-M380-M366_20260916.md
+- ✅ 파트5 해결 완료(2026-09-16): 화면 다중선택 강제 재실행 UI —
+  ui/js_group_master.py 의 quActiveFilesPanel(검색+체크박스+전체선택+
+  선택집계+버튼) 패턴을 그대로 복제-변형해 "검증대상 요약" 카드에 신설
+  (신규 조회 API 없이 기존 /api/batch-groups/{gid}/latest-targets 재사용).
+  배선: schemas/request_models.py(SingleRunStandardRequest.force_rerun
+  신설) → services/batch_single_core_wrapper.py(row["force_rerun"] 전달)
+  → routes/column_candidate_gen_route.py::api_group_run_wrapper
+  (body.force_rerun_ids 있으면 그 대상만 mode="force"+force_rerun=True 로
+  실행, 없으면 기존 delta/all 그대로) → single_validation_run_facade.py
+  ::_try_reuse_last_success 최상단에 강제 플래그 우선순위 분기 추가. 회귀
+  virtual 8/8·complex 5/5·execution-reuse 관련 16/16·batch run-wrapper
+  광역 84 passed 통과. 브라우저 실측(Playwright, MV_AUTH_DISABLED=1 테스트
+  서버 — 8000 운영 서버 아님, 검증 완료 후 같은 지침 안에서 직접 종료)
+  실 프로젝트/그룹(로컬 SQLite, project_id=2/GRP_202606170243184996, 23건)
+  에서 패널을 펼쳐 검색("ORDER_FACT"→1건 필터)·체크박스 다중선택(2건→
+  "강제 재실행" 버튼 활성화) 확인. 코드 저장소 커밋 015bfda2.
+- ✅ 파트6 해결 완료(2026-09-16): 엑셀 강제재실행 컬럼 — migration_workbook_
+  parser.py 에 선택적 컬럼("실행대상"/"강제재실행", 기존 5개 선택 필드와
+  동일한 _ALIASES/_safe() 헤더별칭 패턴 재사용, _required_fields() 미포함
+  =항상 선택) 추가. routes/batch_route.py 어댑터 3지점(target_where 와
+  동일한 3단 릴레이) → policy_target_table_service.py(DTV_policy_target_
+  table_config.force_rerun TEXT 컬럼 신설, _CREATE_SQL+멱등 ALTER,
+  upsert_from_batch_items 4개 INSERT 분기 전부 반영, get_group_current_
+  execution_targets 조회 반환) → 파트5 게이트 배선 그대로 재사용(새 코드
+  없음). 값 해석: 컬럼 없음/빈 셀=자동판단(무회귀), 비공백 값=그 값의
+  의미(예: "대상아님")와 무관하게 무조건 강제 — 설계 문구("값이 있으면 그
+  값을 강제 플래그로 사용") 그대로 반영, UX 주의사항으로 별도 명시. 회귀
+  virtual 8/8·complex 5/5·파서/정책테이블 관련 143/143·batch route/upload
+  광역 151 passed·1 skipped 통과. UI 변경 없음(27번 규칙 해당없음). 코드
+  저장소 커밋 5c0316c2.
+- ✅ 파트7 해결 완료(2026-09-16, 단 신규 결함 M390 발견): 3종 혼재 배치
+  통합 재현(tests/test_execution_reuse_integration_part7.py, test_execution_
+  reuse_gate.py 와 동일 req.group_id 직접 주입 대역으로 게이트+강제플래그
+  판단 로직 자체를 검증) + 전체 관련 회귀(samples 8/8·5/5, execution-reuse
+  관련 스위트 38/38) 통과. **통합검증 도중 발견**: services/batch_single_
+  core_wrapper.py::batch_row_to_single_standard_request 가 SingleRunStandard
+  Request.group_id 를 전혀 채우지 않아(project_id 는 채우면서 group_id 는
+  누락 — 파트2-3, b58374be 부터 있던 기존 결함, 이번 파트5/6 신규 결함
+  아님), 배치 공식경로(routes/column_candidate_gen_route.py::api_group_
+  run_wrapper 로 실행되는 모든 row)에서는 재사용 게이트(_try_reuse_last_
+  success, req.group_id 기준 조회)와 _persist 계산(마찬가지로 req.group_id
+  기준)이 둘 다 그룹 미선택으로 평가돼, 파트1~6에서 구현한 재사용/강제재실행
+  기능 전체가 **개별검증 경로에서만 정상 작동하고 실제 운영 배치 실행
+  경로에서는 지금 이 순간 발동하지 않는다**(M366 파트4가 "완전 E2E 재현
+  불가"로 대체수단을 썼던 이유도 이 결함과 무관하지 않을 가능성). 수정
+  자체(group_id 한 줄)는 트리비얼하지만 부수효과로 모든 배치 row 의
+  _persist 가 지금까지의 False 에서 True 로 바뀌어(= 배치가 지금까지 facade
+  내부 저장을 전혀 안 하고 있었다는 뜻) 기존 "공식 저장" 경로와의 중복·
+  불일치 위험이 있는 광범위한 변경이라 이번 파트5-7 지침 범위를 벗어난다고
+  판단해 코드는 고치지 않고 **M390 으로 별도 등록**했다(완료된 모듈의
+  폭넓은 동작 변경 — 사용자 확인 필요). 코드 저장소 커밋 36391828.
+- 근거: G:\내 드라이브\nxDTV-verify\reports\EXECUTION-REUSE-PART5-6-7-FORCE-OVERRIDE-AND-FINAL-VERIFY-M366_20260916.md
 
 ### M367. 아이디어(미착수) - STATS-EXECUTE-RESULT-PLAN-VERSION-HISTORY-GAP - stats_execute_result가 plan_id로 매번 최신 plan snapshot을 재조회하는 구조라 plan 재생성 시 "당시 SQL"과 어긋날 수 있는 이론적 허점
 - stats_execute_result가 plan_id로 매번 최신 plan snapshot을 재조회하는
@@ -11223,3 +11275,48 @@ THIRD-TRY_20260916.md
   (22건) 통과.
 - 코드 저장소 커밋: 99bee1ed.
 - 근거: MYSQL-CONNECT-MISSING-M383-AND-BATCH-ROUTE-THIRD-TRY_20260916.md
+
+### M390. 아이디어(미착수, 우선순위 높음 — 정합성) - BATCH-OFFICIAL-PATH-GROUP-ID-NOT-WIRED-TO-REUSE-GATE - `batch_row_to_single_standard_request()`가 `SingleRunStandardRequest.group_id`를 채우지 않아 배치 공식경로에서 EXECUTION-REUSE(M366 전체) 재사용/강제재실행 게이트가 실질적으로 미작동
+- EXECUTION-REUSE-PART5-6-7-FORCE-OVERRIDE-AND-FINAL-VERIFY-M366 파트7
+  통합검증(3종 혼재 배치 재현) 도중 발견. `services/batch_single_core_
+  wrapper.py::batch_row_to_single_standard_request()`(:184-215)는
+  `SingleRunStandardRequest` 생성 시 `project_id`는 row 에서 채우면서
+  `group_id`는 어떤 필드에도 채우지 않는다.
+- `services/single_validation_run_facade.py` 의 재사용 게이트
+  `_try_reuse_last_success()`(:961, `req.group_id` 로 직전 성공 실행 조회)와
+  `_persist` 계산(:1729, `req.group_id` 비어있으면 False)이 둘 다
+  `req.group_id` 하나만 기준으로 판단한다. 배치 공식경로(routes/column_
+  candidate_gen_route.py::api_group_run_wrapper → services/batch/
+  wrapper_async_job.py → wrapper_parallel_runner.py → batch_single_core_
+  wrapper.run_batch_row)로 실행되는 모든 row 는 이 값이 항상 빈 문자열로
+  평가된다 — 즉:
+  1. 재사용 게이트가 조회 자체를 생략(항상 "재사용 대상 없음"으로 폴백,
+     실제로는 매번 진짜 실행).
+  2. `_persist` 가 False 로 계산돼 facade 내부 저장(DTV_validation_
+     execution_run/결과/단건 snapshot)도 매번 생략된다(TEMP_SINGLE_RUN과
+     동일하게 취급됨).
+  파트1~6(EXECUTION-REUSE 전체, 강제재실행 포함)에서 구현한 기능은
+  개별검증 경로(routes/single_run_route.py, req.group_id 를 사용자가
+  직접 선택해 채움)에서는 정상 작동하지만, 실제 운영 대량 실행의 핵심
+  경로인 **배치 공식경로에서는 지금 이 순간 전혀 발동하지 않는 상태**다.
+  M366 파트4 완료보고가 "실 Postgres DB 미접속으로 완전 E2E(같은 대상
+  2회 실행) 재현 불가"라고 밝힌 것도 이 결함과 무관하지 않을 가능성이
+  있다(그때는 원인까지 추적하지 못함).
+- 수정 방향(제안만, 이번 지침 실행 안 함): `batch_row_to_single_standard_
+  request()`의 `SingleRunStandardRequest(...)` 호출에 `group_id=(row.get(
+  "group_id") or None)` 한 줄을 추가하면 재사용 게이트는 켜진다. 단
+  이 한 줄의 부수효과로 **모든 배치 row 의 `_persist` 가 지금까지의
+  False 에서 True 로 바뀐다** — 이는 "배치는 지금까지 facade 내부 저장
+  경로를 한 번도 타지 않았다"는 뜻이므로, 이 변경이 기존 "공식 저장"
+  경로(`services/validation_run/result_persistence_facade.py`,
+  `register_single_validation_target`, `persist_execution_bundle` 등 —
+  batch 결과가 실제로 화면에 보이게 만드는 진짜 경로)와 중복 기록이나
+  데이터 불일치를 만들지 않는지 별도 조사·설계가 먼저 필요하다. 트리비얼한
+  한 줄 수정처럼 보이지만 실제로는 배치 실행 저장 흐름 전체의 동작을
+  바꾸는 광범위한 변경이라, 완료된 모듈(파트2-3, BATCH-WRAPPER-FULL-
+  STANDARD-FACADE-CONVERSION)에 대한 사용자 확인 후 별도 지침으로
+  진행 필요(임의 수정 금지).
+- 검증 근거: 이번 지침 완료보고서 안에서 파트7 통합 재현 중 group_id 를
+  임시로 채워 재현 → 3종 혼재 시나리오가 기대대로 동작함을 확인 → 코드는
+  되돌림(최종 커밋 36391828에는 미반영, git diff 없음).
+- 근거: G:\내 드라이브\nxDTV-verify\reports\EXECUTION-REUSE-PART5-6-7-FORCE-OVERRIDE-AND-FINAL-VERIFY-M366_20260916.md
