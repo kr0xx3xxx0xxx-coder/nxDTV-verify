@@ -10843,11 +10843,51 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   폭넓은 동작 변경 — 사용자 확인 필요). 코드 저장소 커밋 36391828.
 - 근거: G:\내 드라이브\nxDTV-verify\reports\EXECUTION-REUSE-PART5-6-7-FORCE-OVERRIDE-AND-FINAL-VERIFY-M366_20260916.md
 
-### M367. 아이디어(미착수) - STATS-EXECUTE-RESULT-PLAN-VERSION-HISTORY-GAP - stats_execute_result가 plan_id로 매번 최신 plan snapshot을 재조회하는 구조라 plan 재생성 시 "당시 SQL"과 어긋날 수 있는 이론적 허점
-- stats_execute_result가 plan_id로 매번 최신 plan snapshot을 재조회하는
-  구조라 plan이 재생성되면 "당시 SQL"이 아닌 "현재 plan의 SQL"과 비교하게
-  되는 이론적 허점 — EXECUTION-REUSE 파트2/3 설계 시 고려 필요.
-- 근거: EXECUTION-REUSE-PART1-LAST-SUCCESS-LOOKUP-FUNCTIONS_20260915.md
+### M367. 아이디어(미착수) - 조사 완료(2026-09-16), 위험 실재 확인 - STATS-EXECUTE-RESULT-PLAN-VERSION-HISTORY-GAP - plan 재생성 시 배치 재사용 게이트의 SQL 비교가 "항상 일치"로 무력화되는 실재 결함(개별검증은 면역)
+- 조사 결과 "이론적 허점"이 아니라 **재현 가능한 실재 결함**으로 확인됐고,
+  원 서술보다 더 심각하다. 배치 재사용 게이트는 "이번 SQL"도 plan snapshot
+  에서 읽고(batch_stats_execute_service.py:827-828, :978-981) "당시 SQL"도
+  같은 plan_id로 plan snapshot을 재조회해 읽는다
+  (execution_reuse_lookup.py:157-165). plan UPSERT 키가
+  (group_id,row_id,policy,plan_type)라 GROUP BY/SUM만 바뀌는 재생성은
+  **같은 id 행을 덮어쓰므로**(stats_validation_plan_service.py:463-517),
+  양쪽이 같은 DB 행을 읽는 자기비교가 되어 SQL 비교 게이트가 통째로
+  무력화된다(항상 일치 판정).
+- 실측 재현(격리 SQLite PoC, 실제 서비스 함수만 사용): plan v1로 성공 실행
+  → GB만 dept→region으로 재생성(plan_id 동일, 스냅샷 행 1개=버전 이력 없음)
+  → 재사용 게이트가 "재사용(run_id=BR_OLD)"으로 오판정. 대조군인 개별검증
+  경로는 같은 시나리오에서 정상적으로 None(재실행). plan_type 자체가 바뀌는
+  재생성(BASIC_GROUPED→GLOBAL_COUNT_SUM)은 새 행이 생겨 안전.
+- **개별검증은 해당 없음(기존 서술 정정)**: 개별은 plan 재조회가 아니라
+  DTV_validation_execution_run에 실행 시점에 박힌 source_sql_hash/
+  target_sql_hash를 비교하므로(execution_reuse_lookup.py:266-274,
+  validation_result_store.py:58-59/:274-279) 구조적으로 면역이다.
+- plan만 단독 재생성하는 화면 동작 존재 확인: POST .../stats-validation-plans/
+  generate(routes/stats_validation_plan_route.py:94-146)를 "고급: 통계검증계획
+  재생성" 링크(ui/tabler_renderer.py:5892 → 버튼 :5978-5981 →
+  batchGenerateStatsPlans() :14394)가 직접 호출하고, 더 중요하게는 기본
+  자동진행 오케스트레이터 "▶ 그대로 실행"(:11264-11284)이 실행 직전
+  :11271에서 매번 plan을 재생성한다 — 숨은 고급 기능이 아니다.
+- 이 경로에는 안전장치가 없다: force_rerun 강제재실행 플래그가
+  batch_stats_execute_service.py에는 아예 없고, 배치 COUNT·실행 그리드에는
+  재사용 배지도 없다(배지 코드는 배치 업로드용 tabler_renderer.py:10512-10528
+  한 곳뿐). 발동해도 사람이 알아채거나 끌 수단이 전혀 없다.
+- 실무 빈도는 현재 0: 운영 DB 실측 결과 plan snapshot 1168건 중 UPSERT로
+  덮어써진 흔적(created_at<>updated_at) 0건, 배치 stats_execute 보조 경로
+  실행 이력 총 3건(성공 2), 실행 이후 plan이 갱신된 조합 0건. 긴급 핫픽스가
+  아니라 계획된 수정 대상으로 다룰 근거.
+- 권장 조치(별도 지침·사용자 승인 필요, 코드 미수정): (A) 본 수정 —
+  stats_execute_result에 source_sql_hash/target_sql_hash 컬럼을 ALTER로
+  추가(:223-237의 기존 ALTER 패턴 재사용)하고 _save_plan_result(:245-261)가
+  실행에 실제 쓴 SQL의 해시를 기록, 조회 함수는 plan 재조회 대신 개별검증과
+  동일하게 저장 해시를 비교하도록 수렴. 기존 행은 해시 NULL → 재사용 불가로
+  자연 폴백이라 마이그레이션 불필요. (B) 병행 저비용 — summary_json.
+  is_reused_result가 이미 API로 내려오므로(:1723-1763) 배치 실행 그리드에도
+  재사용 배지 표시. (C) plan snapshot을 append-only 버전 이력으로 전환하는
+  안은 plan_id 참조가 cleanup/hard-reset/stage5 등에 퍼져 있어 과대설계로
+  비권장.
+- 근거: EXECUTION-REUSE-PART1-LAST-SUCCESS-LOOKUP-FUNCTIONS_20260915.md,
+  PLAN-VERSION-HISTORY-GAP-INVESTIGATE-M367_20260916.md
 
 ### M368. 조사·설계 완료(2026-09-16) - 실행은 별도 승인 대기 - VALIDATION-HISTORY-SERVICE-SQL-HASH-FORMAT-MIGRATION - `validation_history_service.py`의 SQL해시 방식이 canonical_sql_hash와 형식·job 연속성 계약이 달라 이번 통합에서 의도적으로 제외됐던 항목, 실제 영향 추적 결과 전환 안전하나 완료 모듈이라 승인 필요
 - job_id(=build_sql_hash(src_sql))의 실제 소비처를 전부 추적한 결과, 시간축을
