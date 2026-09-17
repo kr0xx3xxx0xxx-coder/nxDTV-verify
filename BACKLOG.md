@@ -11626,3 +11626,28 @@ THIRD-TRY_20260916.md
   단위/통합 테스트로 로직 검증 대체(사유 명시). 코드 저장소 커밋
   337f9e3d(파트A)/ea31f6ea(파트B)/d0dd9788(파트C).
 - 근거: G:\내 드라이브\nxDTV-verify\reports\BATCH-STAGE4-FORCE-REEXECUTE-AND-CATCHUP-IMPLEMENT_20260917.md
+
+### M394. 아이디어(미착수, 선행 결정 필요) - BATCH-STAGE4-REGENERATE-REQUIRED-GATE-C9
+- BATCH-AUTORUN-FIXES-AND-UX-ALL-IN-ONE의 C-9(원 9순위) — 후보 선택
+  변경 후 배치 4단계 실행 버튼에 "변경분 미적용" 표시(개별검증
+  `_isRegenerateRequired()` 대응 게이트)는 구현 보류됨. 조사 결과
+  개별검증의 이 기능은 "사용자가 직접 후보를 수동으로 재선택하는
+  화면"을 전제로 하는데, 배치엔 그런 수동 재선택 화면 자체가 없음
+  (`_batchUpdateRunButtonLabels()`가 stale 건수를 라벨에는 반영 중이나
+  게이팅에는 미연결). **선행 결정 필요**: 배치에 수동 후보 재선택
+  UI를 새로 만들지부터 먼저 정해야 이 게이트 구현이 의미를 가짐 —
+  그 결정 없이는 착수 보류.
+- 근거: BATCH-AUTORUN-FIXES-AND-UX-ALL-IN-ONE_20260917.md
+
+### M395. 아이디어(미착수, 사용자 판단 필요) - NXTDA-UI-SHARE-OR-STANDALONE-DECISION
+- nxTDA(Java/Spring Boot)도 nxDTV와 같은 DB 접속정보(공용 프리셋)를
+  써야 하는데, 화면까지 공유할지 결정 필요. 대화 중 논의된 2안:
+  (A) nxTDA에 훨씬 단순한 자체 읽기 전용 화면을 새로 만듦, (B) nxTDA는
+  화면을 안 만들고 nxDTV의 DB 프로필/검증 경로 관리 화면을 링크로
+  열게 해 관리 주체를 nxDTV 하나로 통일. 어느 쪽도 아직 사용자가
+  확정하지 않음. NXTDA-UNIFY-TO-SHARED-PRESET-DB-FEASIBILITY-AND-DESIGN
+  (2026-09-16, 전체 테이블 통합 대신 축소판 공유 테이블 대안 제안)이
+  이 결정의 선행 조사에 해당하므로 함께 참고.
+- 근거: 2026-09-17 대화(사용자 질문 "다른 프로그램에서도 이걸
+  사용해야하거든... 매번 화면을 새로 그려야하나?"), NXTDA-UNIFY-TO-
+  SHARED-PRESET-DB-FEASIBILITY-AND-DESIGN_20260916.md
