@@ -11148,6 +11148,14 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   받음). 교체 대상은 실질적으로 약 130줄.
 - 근거: BATCH-STATS-EXECUTE-SERVICE-VS-SHARED-FACADE-ARCHITECTURE-
   VERIFY_20260915.md
+- (2026-09-17 추가, BATCH-STAGE4-FORCE-REEXECUTE-AND-CATCHUP-IMPLEMENT):
+  `_execute_one_plan()`/`execute_stats_plans_for_group()`에 `force_rerun`/
+  `force_plan_ids`(강제재실행) 로직이 추가돼(M393), 이 아이디어가 언젠가
+  실행되면 facade 치환 시 옮겨야 할 로직이 하나 더 늘었다(교체 대상
+  약 130줄에 강제재실행 분기 포함해 소폭 증가) — 사용자 승인 하에
+  최소침습으로 진행됐으며(M378 커밋 주석의 "범위 밖" 제외를 이번
+  지침으로 명시 승인), 우선순위·착수 여부 자체는 이 추가로 바뀌지
+  않는다.
 
 ### M380. ✅ 해결 완료(2026-09-16) - BATCH-STATS-EXECUTE-DUAL-PATH-UI-CLARITY - 일괄검증 4·5단계에 실행 버튼 2개/결과 카드 2개가 동시 노출되나 어느 쪽이 최신·정식 경로인지 화면 표시 없음
 - 일괄검증 4단계 같은 카드 영역에 실행 버튼 2개(전체 통계검증 실행
@@ -11165,6 +11173,11 @@ canonical 정규화 재사용 + NULL sentinel, 4개 재현시나리오+300케이
   회귀(virtual 8/8, complex 5/5, 배치 UI 관련 pytest 81/82 — 1건은 무관한
   기존 결함) 통과, 브라우저 실측(수정 전/후 스크린샷 대조) 확인. 코드
   저장소 커밋 e4a9332b. 근거: G:\내 드라이브\nxDTV-verify\reports\BATCH-RESULT-DISPLAY-DUAL-PATH-CLARITY-AND-REUSE-BADGE-M380-M366_20260916.md
+- (2026-09-17 추가, 상호참조): 이 배지가 붙은 같은 카드 영역(4단계
+  batchStatsPlanCard/5단계 batchExecHistoryCard)에 강제재실행/따라잡기
+  기능이 추가됐다(M393, BATCH-STAGE4-FORCE-REEXECUTE-AND-CATCHUP-
+  IMPLEMENT) — 이 항목 자체의 해결 상태·판정에는 영향 없음, 탐색
+  편의를 위한 교차참조.
 
 ### M381. ✅ 해결 완료 - UNSORTED-CHUNK-PK-LOOKUP-PROGRESS-CB-REGRESSION-TEST-MISSING - `run_unsorted_chunk_pk_lookup_compare`의 progress_cb 단조증가/basis 초기화 자체 회귀 테스트 부재
 - MERGE-WALK-PK-RANGE-CHUNK-PERMANENT-REMOVAL(M364)로 불일치 레코드
@@ -11568,3 +11581,48 @@ THIRD-TRY_20260916.md
   미착수 유지.
 - 근거: nxDTV_java 실험 세션 P5 최종 보고(2026-09-16, 사용자 전달) +
   G:\내 드라이브\nxDTV-verify\reports\STATS-VALIDATOR-CONFIDENCE-FAIL-OPEN-FIX_20260916.md
+
+### M393. ✅ 해결 완료(2026-09-17) - BATCH-STAGE4-FORCE-REEXECUTE-AND-CATCHUP-IMPLEMENT - 배치 4단계 Path A/B 강제재실행 + Path B "따라잡기"(재사용된 것만 골라 재실행) 구현
+- BATCH-STAGE4-FORCE-REEXECUTE-AND-CATCHUP-DESIGN(2026-09-17)이 확정한
+  설계안(A/B/C)을 구현. 설계 시점엔 "Path A는 M390 미해결로 지금
+  만들어도 의미 없다"였으나, 그 직후 M390-BATCH-OFFICIAL-PATH-REUSE-
+  GATE-FIX(커밋 df04b82b)가 완료되어 이미 해결됨을 확인 — Path A/B
+  둘 다 실효성 있는 것으로 진행(설계안의 "효과 없다는 경고 문구"
+  요소는 제외).
+- 파트A: 2단계(batchLatestCard)의 mvFr* 강제재실행 패널(검색+체크박스+
+  전체선택+버튼)을 4단계(batchFullValidationCard)에도 복제 노출(id는
+  '2' 접미사로 충돌만 회피, 9번 규칙). `runWrapperValidation()`에
+  `forceBtnId` 파라미터 추가(기본값 유지로 기존 호출부 무회귀).
+- 파트B: `_execute_one_plan()`/`_execute_one_plan_with_timeout()`에
+  `force_rerun` 플래그 추가 — `group_id`가 있어도 재사용 게이트를
+  건너뛰고 강제 실행 가능. `execute_stats_plans_for_group()`에
+  `plan_ids_filter`와 별개인 `force_plan_ids`(frozenset[int]) 추가.
+  `start_batch_execute()`/실행 API에 `force_all`/`force_plan_ids`
+  요청 필드 추가, `batchStatsPlanCard` 실행 버튼 옆에 "강제
+  재실행(재사용 무시)" 체크박스(기본 OFF) 추가. `_execute_one_plan()`은
+  M378 커밋 주석에서 "강제재실행 분기는 범위 밖"이라 명시적으로
+  제외했던 완료 모듈이나, 이번 지침으로 사용자가 명시 승인해 최소
+  침습으로 확장(M379에 상호참조 추가).
+- 파트C: `get_rerun_candidates()`를 복제한 `get_reused_candidates(run_id)`
+  신설 — 상태값 필터 대신 `summary.is_reused_result is True`로 재사용된
+  plan만 분류. 5단계 `batchExecHistoryCard`에 "재사용된 항목만 보기"
+  토글 추가(신규 조회 API 없이 클라이언트 필터링, 설계안의 "더 간단한
+  대안"). 필터링된 목록에서 다중선택 → 파트B의 `force_plan_ids`로
+  전달 → "선택 항목만 강제 재실행" 버튼(M366 파트5와 동일한 UX 패턴
+  재사용, 기존 실행 API/폴링 그대로 재사용).
+- 검증: samples/test_virtual_cases.py 8/8, samples/test_complex_cases.py
+  5/5, execution-reuse 관련 스위트(test_task12_e/f/f1/g,
+  test_batch_execution_reuse_gate, test_batch_official_reuse_gate,
+  test_execution_reuse_lookup/integration_part7/force_rerun/gate,
+  test_batch_force_rerun_column, test_batch_delta_rerun_freshness)
+  179/179 통과. 각 파트 신규 단위 테스트 추가(force_rerun 게이트
+  우회, force_plan_ids 선택적 우회, force_all→force_plan_ids 변환,
+  get_reused_candidates 분류). 브라우저 실측(is_test=1 데모 프로젝트/
+  그룹/plan/실행이력 합성 데이터로 4·5단계 진입, 수정 전 git worktree
+  대조 스크린샷 포함) — 4단계 중복 패널, 통계검증계획 카드 체크박스,
+  5단계 토글+체크박스+강제재실행 버튼 모두 렌더 및 클릭 동작(선택 →
+  confirm → `force_plan_ids` 포함 POST) 확인. 실 DB 미접속으로 실제
+  재사용→강제재실행 결과 비교(원격 Postgres 실행)까지는 미실측 —
+  단위/통합 테스트로 로직 검증 대체(사유 명시). 코드 저장소 커밋
+  337f9e3d(파트A)/ea31f6ea(파트B)/d0dd9788(파트C).
+- 근거: G:\내 드라이브\nxDTV-verify\reports\BATCH-STAGE4-FORCE-REEXECUTE-AND-CATCHUP-IMPLEMENT_20260917.md
