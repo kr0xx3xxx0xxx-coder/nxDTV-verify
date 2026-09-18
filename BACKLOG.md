@@ -11737,3 +11737,58 @@ THIRD-TRY_20260916.md
   history_run` 단순 문자열 치환으로 트리비얼함. 사용자 승인 후 별도
   지침으로 진행 필요.
 - 근거: G:\내 드라이브\nxDTV-verify\reports\SAMPLES-TEST-VALIDATION-HISTORY-STALE-TABLE-NAME-FIX-M391_20260918.md
+
+### M400. 아이디어(미착수, 우선순위 높음) - BATCH-ID-COLLISION-RISK-FIX
+- QUERY-UNIQUENESS-AXIS-VERIFY-PROJECT-GROUP-BATCH-ROWNUM에서 확인 —
+  `batch_id`가 `datetime.now()` 마이크로초 문자열로 생성되며(routes/
+  batch_route.py:950-953) 락/재시도 없음. `DTV_mv_batch_run`에
+  `INSERT OR REPLACE`로 저장돼(services/batch_group_service.py:
+  988-989), 충돌 시 이전 배치 이력이 **조용히 덮어써짐** — 다운스트림
+  3개 테이블(batch_result/policy_target_table_config/batch_wrapper_
+  result)도 project_id를 안 갖고 (batch_id, row_num) 2축만 신뢰하므로
+  충돌 시 데이터 오식별이 전파될 수 있음. 업로드마다 자동 발급이라
+  발생 빈도가 GROUP-ID-COLLISION 건보다 높음.
+- 제안(실행 안 됨): `DTV_mv_upload_row_result`에 `UNIQUE(batch_id,
+  excel_row_no)` 추가 + batch_id 생성을 uuid4 기반 또는 락 보호로
+  전환, `INSERT OR REPLACE`를 일반 `INSERT`(충돌 시 명시적 실패)로
+  전환 — group_id가 이미 이 마지막 패턴(PK+일반 INSERT, 충돌 시
+  IntegrityError→500)을 쓰고 있어 그대로 참고 가능(GROUP-ID-
+  COLLISION-RISK-PARITY-WITH-BATCH-ID-VERIFY 확인).
+- 근거: G:\내 드라이브\nxDTV-verify\reports\QUERY-UNIQUENESS-AXIS-VERIFY-PROJECT-GROUP-BATCH-ROWNUM_20260918.md
+
+### M401. 아이디어(미착수, 우선순위 낮음, 참고) - GROUP-ID-COLLISION-RISK-FIX
+- 위(M400)와 동일 클래스 결함(락/재시도 없음, services/batch_group_
+  service.py:462)이지만 (a) 저장이 PK+일반 INSERT라 충돌 시 조용한
+  덮어쓰기 대신 명시적 500 실패, (b) 생성이 "새 그룹 만들기" 수동
+  클릭 시에만 발생해 빈도가 낮음 — 실질 위험이 BATCH-ID-COLLISION
+  보다 낮으나 "완전 안전"은 아님. BATCH-ID-COLLISION-RISK-FIX(M400)
+  착수 시 같은 패턴(uuid4/락)으로 함께 검토 권장.
+- 근거: G:\내 드라이브\nxDTV-verify\reports\GROUP-ID-COLLISION-RISK-PARITY-WITH-BATCH-ID-VERIFY_20260918.md
+
+### M402. 아이디어(보류, 사용자 판단 필요) - PROJECT-GROUP-BATCH-ID-SCHEME-UNIFY-3DIGIT-TEXT-PROPOSAL
+- 사용자 제안: project_id/group_id/batch_id를 전부 3자리 텍스트로
+  통일하자는 것. 검토 결과(2026-09-18 대화) 반대 근거: (1) project_id
+  가 이미 1000번대까지 진행돼 3자리(최대 999) 규모 초과, (2) 코드/
+  테스트 전반에 현재 형식이 광범위하게 참조돼 있어 변경 범위가
+  매우 큼, (3) 현재 타임스탬프 방식은 동시성 충돌 방지가 설계
+  목적이었고 짧은 순번으로 바꾸면 오히려 시퀀스 관리 장치가 새로
+  필요해 충돌 위험이 늘 수 있음. 사용자도 "지침 결과 먼저 처리하고
+  다시 얘기하자"며 보류에 동의 — BATCH-ID-COLLISION-RISK-FIX(M400)/
+  GROUP-ID-COLLISION-RISK-FIX(M401)로 우려의 핵심(충돌 위험)은
+  더 작은 범위로 해결 가능해 보이므로, 이 대규모 제안은 재론 필요성
+  자체를 먼저 재확인할 것.
+- 근거: 2026-09-18 사용자 대화(별도 조사 보고서 없음)
+
+### M403. 참고(범위 밖, 기능 안전은 이미 확인됨) - PROJECT-SOFT-DELETE-CHILD-GROUP-DB-VALUE-NOT-PROPAGATED
+- PROJECT-SOFT-DELETE-CHILD-GROUP-CASCADE-CONSISTENCY-VERIFY 확인 —
+  프로젝트 소프트 삭제 시 하위 `DTV_validation_batch_group.is_deleted`
+  값 자체는 갱신 안 됨(row는 "활성" 그대로 보존, 이력 보존이 설계
+  의도). 실질 위험은 없음(목록 조회 SQL이 삭제된 프로젝트 소속 그룹을
+  서버 쿼리 레벨에서 항상 제외, 실행 시도도 매번
+  project_scope_guard.check_group_scope()가 부모 삭제여부 재확인해
+  차단 — 둘 다 테스트로 확정됨). 다만 "자식 row 값도 같이 바뀌어야
+  한다"는 사용자의 원래 기대와는 다른 구현 방식(값 전파 대신 조회·
+  실행 시점 재확인)이므로, 혹시 이 DB 값 자체의 일관성이 별도
+  목적(예: 직접 DB 리포트/BI 도구 등, 위 가드를 안 거치는 조회)으로
+  중요해질 경우에만 재검토.
+- 근거: G:\내 드라이브\nxDTV-verify\reports\PROJECT-SOFT-DELETE-CHILD-GROUP-CASCADE-CONSISTENCY-VERIFY_20260918.md
