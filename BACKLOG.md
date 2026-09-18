@@ -11516,7 +11516,7 @@ THIRD-TRY_20260916.md
   HISTORY-STALE-TABLE-NAME-FIX 항목이 이미 쓰고 있어 충돌 — 정식
   M392로 정정해 파일 끝에 해결완료 항목으로 재등록하고 이 자리는 비움)
 
-### M391. 아이디어(미착수) - SAMPLES-TEST-VALIDATION-HISTORY-STALE-TABLE-NAME-FIX - samples/test_validation_history_service.py TC-19 이후가 존재하지 않는 테이블명(validation_run)을 참조해 크래시, 508a9bbd DTV_ 이름변경 이후 파일만 미갱신된 무관 선재 결함
+### M391. ✅ 해결 완료(2026-09-18) - SAMPLES-TEST-VALIDATION-HISTORY-STALE-TABLE-NAME-FIX - samples/test_validation_history_service.py TC-19 이후가 존재하지 않는 테이블명(validation_run)을 참조해 크래시, 508a9bbd DTV_ 이름변경 이후 파일만 미갱신된 무관 선재 결함
 - VALIDATION-HISTORY-SQL-HASH-MIGRATION-IMPLEMENT-M368 수행 중 회귀 테스트로
   samples/test_validation_history_service.py 전체(TC-1~61)를 재실행하다 발견.
   TC-3~6의 `check("validation_run 테이블 존재", "validation_run" in _tables)`
@@ -11534,12 +11534,17 @@ THIRD-TRY_20260916.md
   `validation_run` 문자열만 `DTV_validation_history_run`으로 치환해
   scratchpad에서 실행한 결과 TC-1~86(187건 체크) 전량 통과. 즉 결함은
   테스트 파일의 오래된 테이블명 참조 하나뿐, 실제 서비스 코드에는 없다.
-- 완료된 테스트 모듈이라 CLAUDE.md 단계별 작업 규칙상 임의 수정 금지 —
-  이번 지침 범위 밖이라 수정하지 않고 발견 사실만 기록. 수정 자체는
-  라인 74/237/290/303/331/472/504의 `validation_run` → `DTV_validation_
-  history_run` 단순 문자열 치환 7곳으로 트리비얼하나, 사용자 승인 후
-  별도 지침으로 진행 필요.
-- 근거: G:\내 드라이브\nxDTV-verify\reports\VALIDATION-HISTORY-SQL-HASH-MIGRATION-IMPLEMENT-M368_20260916.md
+- (2026-09-18, SAMPLES-TEST-VALIDATION-HISTORY-STALE-TABLE-NAME-FIX-M391
+  지침으로 해결) 지침이 명시적으로 범위를 "TC-19부터"로 한정해, 그
+  범위에 속하는 라인 237/290/303/331/472/504(TC-19/21/22/24/37~45)
+  6곳을 `validation_run` → `DTV_validation_history_run`으로 정정했다.
+  정정 후 TC-1~86(187건) 전체가 크래시 없이 끝까지 실행되며 186통과/
+  1실패로 종료 확인(회귀 samples/test_virtual_cases.py 8/8,
+  samples/test_complex_cases.py 5/5도 재실행해 이상 없음 확인). 남은
+  1실패는 지침 범위 밖으로 의도적으로 남겨둔 라인 74(TC-3~6, TC-19
+  이전)의 동일 유형 잔존 결함이며, 새 항목 M399로 분리 등록.
+- 근거: G:\내 드라이브\nxDTV-verify\reports\VALIDATION-HISTORY-SQL-HASH-MIGRATION-IMPLEMENT-M368_20260916.md,
+  G:\내 드라이브\nxDTV-verify\reports\SAMPLES-TEST-VALIDATION-HISTORY-STALE-TABLE-NAME-FIX-M391_20260918.md
 
 ### M392. ✅ 해결 완료(2026-09-16) - STATS-VALIDATOR-CONFIDENCE-FAIL-OPEN-FIX - `validator/stats_validator.py::_assess_confidence`의 parsed_sql=None → CONFIDENCE_HIGH 오판(docstring "FAIL"과 모순되는 fail-open)을 FAIL로 수정
 - (최초 등록 초안이 "M391"을 잘못 자칭 — 그 번호는 SAMPLES-TEST-
@@ -11683,3 +11688,20 @@ THIRD-TRY_20260916.md
   공식 등록 경로(`:1770` 부근)는 이미 409 응답으로 명확히 안내됨 —
   이 경로만 별도로 남은 것.
 - 근거: BATCH-ACTIVE-EXECUTION-DELETE-REPLACE-LOCK-FIX_20260917.md
+
+### M399. 아이디어(미착수, 트리비얼) - SAMPLES-TEST-VALIDATION-HISTORY-LINE74-STALE-TABLE-NAME-LEFTOVER
+- M391(SAMPLES-TEST-VALIDATION-HISTORY-STALE-TABLE-NAME-FIX) 지침이
+  범위를 "TC-19부터"로 명시 한정해, TC-19 이전인 TC-3~6의 라인 74
+  (`check("validation_run 테이블 존재", "validation_run" in _tables)`)는
+  의도적으로 수정하지 않고 남겨뒀다. 이 체크는 실제 테이블명이
+  `DTV_validation_history_run`으로 바뀐 뒤에도 여전히 구 이름
+  `validation_run`을 참조해 존재 여부 판정이 상시 거짓(FAIL)으로
+  나온다 — TC-19처럼 크래시로 이어지진 않지만(단순 멤버십 검사라
+  예외 발생 없음), 항상 틀린 결과를 내는 죽은 체크 상태다.
+- M391 정정 후 `samples/test_validation_history_service.py` 전체
+  실행 결과 186통과/1실패(전체 187건)로 이 라인 74가 유일한 잔존
+  실패임을 확인.
+- 수정 자체는 라인 74 한 곳의 `validation_run` → `DTV_validation_
+  history_run` 단순 문자열 치환으로 트리비얼함. 사용자 승인 후 별도
+  지침으로 진행 필요.
+- 근거: G:\내 드라이브\nxDTV-verify\reports\SAMPLES-TEST-VALIDATION-HISTORY-STALE-TABLE-NAME-FIX-M391_20260918.md
