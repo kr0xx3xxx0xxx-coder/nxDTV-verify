@@ -11651,3 +11651,35 @@ THIRD-TRY_20260916.md
 - 근거: 2026-09-17 대화(사용자 질문 "다른 프로그램에서도 이걸
   사용해야하거든... 매번 화면을 새로 그려야하나?"), NXTDA-UNIFY-TO-
   SHARED-PRESET-DB-FEASIBILITY-AND-DESIGN_20260916.md
+
+### M396. 아이디어(미착수, 설계 확정됨) - BATCH-STAGE5-DRILLDOWN-P6
+- BATCH-UI-STRUCTURE-PARITY 계획의 P6. 배치 5단계 행 상세 모달에
+  개별검증 수준 드릴다운 3종이 전부 없음(0/3 확인): (a) 그룹별 비교표
+  (GROUP BY 축 병렬열+Δ+판정배지), (b) PK 레코드 드릴다운
+  (`/agg-diff/pk-records`), (c) EXACT-DIFF(누락/과잉/값불일치/중복키+
+  CSV). "모달을 열 때만 온디맨드로 1개 테이블만" 원칙 지키면 대용량
+  배치에서도 성능 부담 없음(확인됨). 우선순위: (a)→(b)→(c) — 전부
+  기존 엔진 재사용 가능(신규 판정 로직 불필요), (a)가 가장 쉽고
+  (c)는 배치 컨텍스트 재사용 전례가 없어 검증비용이 가장 큼.
+- 근거: BATCH-STAGE5-DRILLDOWN-DEPTH-INVESTIGATE-P3_20260917.md
+
+### M397. 아이디어(미착수, 사용자 판단 필요) - SINGLE-VALIDATION-COUNT-MISMATCH-3WAY-MISMATCH
+- 개별검증의 COUNT 불일치 처리 방식에 3자 불일치 확인됨: CLAUDE.md
+  문서("Web UI 4단계 화면 흐름", 확정 2026-05-11)는 "기본 차단+[불일치
+  상태로 계속 진행] 수동 버튼"으로 서술하나, 실제 코드(`ui/tabler_
+  renderer.py:9020`, `:7201-7202`)는 완전 비차단으로 동작하고,
+  백엔드 정책 기본값(`validation_policy_service.py:914`
+  `DEFAULT_COUNT_MISMATCH_POLICY_INDIVIDUAL`)은 "확인 후 허용"(confirm형)
+  이다. 배치와의 정합성 문제는 아님(배치 정책선택형과는 별개 이슈로
+  이미 분리 확인됨) — 문서/코드/정책값 중 어느 쪽에 맞춰 정정할지
+  사용자 판단 필요.
+- 근거: BATCH-STAGE2-COUNT-MISMATCH-POLICY-CONSISTENCY-CHECK-P2_20260917.md
+
+### M398. 참고(범위 밖, 낮은 우선순위) - BATCH-SAVE-BATCH-REJECTION-NOT-SURFACED
+- BATCH-ACTIVE-EXECUTION-DELETE-REPLACE-LOCK-FIX에서 발견 — 배치
+  저장 경로 중 `_save_batch`(검토용 임시저장, `routes/batch_route.py
+  :1674` 부근)는 실행 중 거부 시 데이터 오염은 없으나(트랜잭션 자체가
+  안 열림, 안전함) 거부됐다는 사실을 사용자에게 명확히 안 보여줌.
+  공식 등록 경로(`:1770` 부근)는 이미 409 응답으로 명확히 안내됨 —
+  이 경로만 별도로 남은 것.
+- 근거: BATCH-ACTIVE-EXECUTION-DELETE-REPLACE-LOCK-FIX_20260917.md
