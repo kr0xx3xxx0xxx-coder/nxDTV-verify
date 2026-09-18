@@ -11738,7 +11738,7 @@ THIRD-TRY_20260916.md
   지침으로 진행 필요.
 - 근거: G:\내 드라이브\nxDTV-verify\reports\SAMPLES-TEST-VALIDATION-HISTORY-STALE-TABLE-NAME-FIX-M391_20260918.md
 
-### M400. 아이디어(미착수, 우선순위 높음) - BATCH-ID-COLLISION-RISK-FIX
+### M400. 해결 완료 - BATCH-ID-COLLISION-RISK-FIX
 - QUERY-UNIQUENESS-AXIS-VERIFY-PROJECT-GROUP-BATCH-ROWNUM에서 확인 —
   `batch_id`가 `datetime.now()` 마이크로초 문자열로 생성되며(routes/
   batch_route.py:950-953) 락/재시도 없음. `DTV_mv_batch_run`에
@@ -11748,13 +11748,29 @@ THIRD-TRY_20260916.md
   result)도 project_id를 안 갖고 (batch_id, row_num) 2축만 신뢰하므로
   충돌 시 데이터 오식별이 전파될 수 있음. 업로드마다 자동 발급이라
   발생 빈도가 GROUP-ID-COLLISION 건보다 높음.
-- 제안(실행 안 됨): `DTV_mv_upload_row_result`에 `UNIQUE(batch_id,
-  excel_row_no)` 추가 + batch_id 생성을 uuid4 기반 또는 락 보호로
-  전환, `INSERT OR REPLACE`를 일반 `INSERT`(충돌 시 명시적 실패)로
-  전환 — group_id가 이미 이 마지막 패턴(PK+일반 INSERT, 충돌 시
-  IntegrityError→500)을 쓰고 있어 그대로 참고 가능(GROUP-ID-
+- 제안(원래 안, 전체 실행 안 됨): `DTV_mv_upload_row_result`에
+  `UNIQUE(batch_id, excel_row_no)` 추가 + batch_id 생성을 uuid4 기반
+  또는 락 보호로 전환, `INSERT OR REPLACE`를 일반 `INSERT`(충돌 시
+  명시적 실패)로 전환 — group_id가 이미 이 마지막 패턴(PK+일반 INSERT,
+  충돌 시 IntegrityError→500)을 쓰고 있어 그대로 참고 가능(GROUP-ID-
   COLLISION-RISK-PARITY-WITH-BATCH-ID-VERIFY 확인).
-- 근거: G:\내 드라이브\nxDTV-verify\reports\QUERY-UNIQUENESS-AXIS-VERIFY-PROJECT-GROUP-BATCH-ROWNUM_20260918.md
+- 실제 조치(2026-09-18, FULL-DATA-RESET-AND-GROUPID-SEQUENTIAL-AND-
+  BATCHID-SAFE-FAIL-IMPLEMENT 파트C): 위 제안 중 "안전한 실패방식
+  전환"만 최소 범위로 반영 — `services/batch_group_service.py`
+  `register_batch_run()`의 `INSERT OR REPLACE`를 일반 `INSERT`로
+  바꾸고 `sqlite3.IntegrityError`를 그 함수 안에서 캐치해 기존
+  `{"ok": False, "error", "conflict_batch_run_id"}` 반환 계약(이미
+  `routes/batch_route.py:1797-1804`가 처리 중이던 것과 동일 계약)으로
+  응답하도록 했다 — 라우트 쪽 추가 코드 없이 기존 409 처리 경로를
+  그대로 재사용(신규 재시도 로직 발명 없음). batch_id 자체의 충돌
+  "빈도"를 낮추는 uuid4/락 전환과 `DTV_mv_upload_row_result` UNIQUE
+  제약은 이번 조치 범위 밖(미착수 유지) — 이번 조치는 "충돌이 나면
+  조용히 덮어써지는 것"을 "명시적으로 실패하는 것"으로만 바꾼 것이다.
+  의도적으로 같은 batch_id 2회 INSERT를 재현해 두 번째가 조용히
+  덮어써지지 않고 명시적으로 실패함을 확인했다(검증 상세는 보고서
+  참고).
+- 근거: G:\내 드라이브\nxDTV-verify\reports\QUERY-UNIQUENESS-AXIS-VERIFY-PROJECT-GROUP-BATCH-ROWNUM_20260918.md,
+  G:\내 드라이브\nxDTV-verify\reports\FULL-DATA-RESET-AND-GROUPID-SEQUENTIAL-AND-BATCHID-SAFE-FAIL-IMPLEMENT_20260918.md
 
 ### M401. 아이디어(미착수, 우선순위 낮음, 참고) - GROUP-ID-COLLISION-RISK-FIX
 - 위(M400)와 동일 클래스 결함(락/재시도 없음, services/batch_group_
