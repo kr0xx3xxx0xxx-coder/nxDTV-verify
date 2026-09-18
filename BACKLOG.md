@@ -11668,7 +11668,7 @@ THIRD-TRY_20260916.md
   (c)는 배치 컨텍스트 재사용 전례가 없어 검증비용이 가장 큼.
 - 근거: BATCH-STAGE5-DRILLDOWN-DEPTH-INVESTIGATE-P3_20260917.md
 
-### M397. 아이디어(미착수, 사용자 판단 필요) - SINGLE-VALIDATION-COUNT-MISMATCH-3WAY-MISMATCH
+### M397. ✅ 해결 완료(2026-09-18) - SINGLE-VALIDATION-COUNT-MISMATCH-3WAY-MISMATCH - 개별검증 COUNT 불일치 3자 불일치(CLAUDE.md 문서/코드/백엔드 정책값)를 원인 규명 후 문서·정책값을 실제 코드 동작(비차단)에 맞춰 정정
 - 개별검증의 COUNT 불일치 처리 방식에 3자 불일치 확인됨: CLAUDE.md
   문서("Web UI 4단계 화면 흐름", 확정 2026-05-11)는 "기본 차단+[불일치
   상태로 계속 진행] 수동 버튼"으로 서술하나, 실제 코드(`ui/tabler_
@@ -11679,6 +11679,38 @@ THIRD-TRY_20260916.md
   이미 분리 확인됨) — 문서/코드/정책값 중 어느 쪽에 맞춰 정정할지
   사용자 판단 필요.
 - 근거: BATCH-STAGE2-COUNT-MISMATCH-POLICY-CONSISTENCY-CHECK-P2_20260917.md
+- (2026-09-18, SINGLE-VALIDATION-COUNT-MISMATCH-3WAY-MISMATCH-FIX-M397
+  실행) 원인 규명: `git log -p -S`로 `ui/tabler_renderer.py`의 COUNT
+  게이트 이력 추적 결과, 2026-06-12 커밋(`bb2e8c43`/`692c8dbd`) 시점엔
+  체크박스 기반 "차단+수동진행" 게이트가 실제로 있었으나(CLAUDE.md
+  2026-05-11 확정 내용과 일치), 13일 뒤 2026-06-25 커밋 `6a0b06d6`
+  ("redesign count and validation result experience")에서 그 체크박스/
+  게이트를 의도적으로 제거하고 "COUNT 불일치는 비차단 — 전체 검증
+  계속 진행"으로 재설계했다(커밋 메시지에 명시, facade/presenter/
+  전용 테스트(`tests/test_single_count_mismatch_policy_alignment.py`)
+  까지 일관되게 그 정책을 반영·통과 중). 백엔드
+  `can_proceed_to_candidates`/`requires_user_confirm` 필드도 그 시점에
+  프런트 소비 코드가 함께 제거되어(현재 `ui/tabler_renderer.py`에
+  미사용, `debug/`·`samples/extracted_script_*.js`·`_tmp_*.js` 등 옛
+  스냅샷에만 잔존) 죽은 출력이 됐다. 즉 (B) 판정: 비차단이 나중에
+  의도적으로 확정된 것이고, CLAUDE.md 문서와 백엔드 기본 정책값 쪽이
+  그 재설계를 따라가지 못한 채 남아 있었다.
+  조치(문서/설정값만 정정, 코드는 미수정): (1) CLAUDE.md "Web UI 4단계
+  화면 흐름" 2단계 COUNT 불일치 서술을 비차단으로 정정 + 정정 이력
+  각주 추가. (2) `services/validation_policy_service.py:914`
+  `DEFAULT_COUNT_MISMATCH_POLICY_INDIVIDUAL`을
+  `COUNT_MISMATCH_POLICY_ALLOW_CONFIRM` → `COUNT_MISMATCH_POLICY_ALLOW_WARNING`
+  (allowed=True, requires_confirm=False — 실제 프런트 동작과 일치)으로
+  변경. 단 프런트가 요청 시 `count_mismatch_policy` 필드를
+  `'allow_with_confirm'`로 직접 명시해 보내는 경로(`ui/tabler_renderer.py
+  :27825`, `schemas/request_models.py` 기본값)는 이번 정정 범위 밖(그
+  필드를 생략하는 레거시/CLI 호출에만 이번 기본값 정정이 실효).
+  검증: `samples/test_virtual_cases.py`(8/8), `samples/test_complex_cases
+  .py`(5/5), `tests/test_task11_count_policy.py` +
+  `tests/test_single_count_mismatch_policy_alignment.py`(32 passed, 20
+  subtests) + 연관 COUNT 정책 테스트 4파일(전부 통과) — 전체 무회귀
+  확인.
+  근거: G:\내 드라이브\nxDTV-verify\reports\SINGLE-VALIDATION-COUNT-MISMATCH-3WAY-MISMATCH-FIX-M397_20260918.md
 
 ### M398. 참고(범위 밖, 낮은 우선순위) - BATCH-SAVE-BATCH-REJECTION-NOT-SURFACED
 - BATCH-ACTIVE-EXECUTION-DELETE-REPLACE-LOCK-FIX에서 발견 — 배치
