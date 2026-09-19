@@ -11864,7 +11864,7 @@ THIRD-TRY_20260916.md
   중요해질 경우에만 재검토.
 - 근거: G:\내 드라이브\nxDTV-verify\reports\PROJECT-SOFT-DELETE-CHILD-GROUP-CASCADE-CONSISTENCY-VERIFY_20260918.md
 
-### M404. 아이디어(미착수, 우선순위 중간) - E2E-VERIFICATION-SCRIPTS-GITSTASH-TO-WORKTREE-MIGRATE
+### M404. 해결 완료(2026-09-19) - E2E-VERIFICATION-SCRIPTS-GITSTASH-TO-WORKTREE-MIGRATE
 - 배경: 이 프로젝트는 "git stash 절대 금지, worktree add --detach만
   사용"(CLAUDE.md 38번 규칙 계열, `.claude/hooks/pretooluse_stash_guard.py`
   PreToolUse 훅으로 `git stash` 계열 명령을 자동 차단)을 원칙으로 하는데도,
@@ -11909,6 +11909,35 @@ THIRD-TRY_20260916.md
 - 근거: 2026-09-19 조사(본 항목, 별도 보고서는
   G:\내 드라이브\nxDTV-verify\reports\ 에 완료보고로 저장 예정),
   scripts/dev_e2e/EXECUTION-REUSE-BADGE-RELATIVE-TIME-ADD_verify.py
+- 조치 결과(2026-09-19, 지침 M404-EXECUTION-REUSE-BADGE-VERIFY-SCRIPT-
+  GITSTASH-TO-WORKTREE-MIGRATE): 위 스크립트의 `git stash`/`stash pop`
+  호출을 전부 제거하고 `git worktree add --detach <임시경로> HEAD`(수정 전
+  참조) + `git worktree remove --force`(작업 종료 후 즉시 정리)로 교체.
+  MV_DATA_DIR/MV_PRESET_DATA_DIR 임시 디렉터리 + 별도 포트(8244) 기동은
+  f12_cascade_delete_ui_verify.py 패턴, 분리기동 서버 PID 종료는 커밋
+  01eb1401 패턴을 그대로 재사용(신규 메커니즘 없음). 실행 검증 중 이
+  스크립트 자체에 있던 별개의 선행 결함 2건도 함께 발견·수정함(모두 M404
+  범위 밖의 기존 결함 — 이 스크립트가 그동안 한 번도 끝까지 실행된 적이
+  없었던 것으로 확인):
+  (1) `page.route()` 핸들러가 `lambda route, when=when3` 형태라 Playwright가
+  항상 `(route, route.request)` 2개 위치 인자로 호출 → `when` 기본값이
+  Request 객체로 덮어써져 TypeError, 예외가 Playwright 이벤트 루프에만
+  로깅되고 fulfill 미호출 → 브라우저 fetch()가 영원히 응답을 못 받아
+  `page.evaluate()`가 무기한 hang(오늘 실측 중 1시간+ 방치되어 발견,
+  타 세션 명령이 아닌 이 스크립트 자체의 결함으로 확정 — 프로세스
+  트리/커맨드라인 조사로 검증). `when`을 파라미터가 아닌 클로저로 캡처하고
+  `*_args`로 여분의 위치 인자를 흡수하도록 수정. (2) `batchWrapperResultCard`
+  가 일괄검증 탭 내부 요소라 `card.style.display` 만으로는 조상 탭
+  컨테이너가 가려진 채라 스크린샷이 "element is not visible"로 타임아웃 —
+  실제 배포된 `showTab('batch')` 호출 + 스크린샷 직전 방어적 재노출로 수정.
+  실행 검증: 격리 임시 DB/프리셋 + worktree(HEAD)/메인 저장소 두 경로에서
+  각각 서버 기동 → 3개 지점(개별검증 배너/배치 이력 그리드/배치 실행 카드)
+  스크린샷 6장 정상 생성, `git stash` 계열 명령 0회 호출 확인(프로세스 로그
+  전수 확인), 실행 중 다른 세션이 실제로 병행 커밋(8bd1d9c7)한 상황에서도
+  메인 작업 트리의 미커밋 변경 3개 파일(grid_helpers.py/js_batch_display.py/
+  js_shared_utils.py)은 실행 전후 MD5 동일(완전 무손상) — 공유 워킹트리
+  안전성 실측 완료. 상세: G:\내 드라이브\nxDTV-verify\reports\
+  M404-EXECUTION-REUSE-BADGE-VERIFY-SCRIPT-GITSTASH-TO-WORKTREE-MIGRATE_20260919.md
 
 ### M405. 버그(미착수, 우선순위 미정, 정확성 문제) - LEGACY-FULL-VALIDATOR-COMPOSITE-PK-FIRST-COLUMN-ONLY
 - FULL-VALIDATOR-UNNECESSARY-SORT-REMOVE 조사 중 부수적으로 발견된
