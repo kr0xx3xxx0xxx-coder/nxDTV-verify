@@ -11934,3 +11934,23 @@ THIRD-TRY_20260916.md
   (main.py:27-28, 201-204; checker/pre_validator.py:95-99;
   generator/sql_generator.py:119-123, 588-641;
   validator/full_validator.py:208, 311).
+
+### M406. 버그(미착수, 우선순위 미정, 보안) - DB-PRESET-PASSWORD-PLAINTEXT-STORAGE
+- REAL-DB-CONNECTION-INFO-AVAILABILITY-IN-SANDBOX-RECHECK 조사 중
+  부수적으로 발견됨.
+- `common/db/dnp_db_preset.db`의 `mv_db_preset` 테이블 password
+  컬럼이 암호화/볼트 보관 없이 평문으로 저장돼 있음(16건 전부
+  해당).
+- 2026-06-15에 API 응답 레벨에서 비밀번호 미반환으로 막은 적은
+  있으나(GET /db/presets/*), 저장 레벨 자체는 여전히 평문(API
+  응답만 막았을 뿐, 저장 방식 자체는 안 고쳐진 것으로 추정 —
+  재확인 필요).
+- 이 DB파일(`common/db/dnp_db_preset.db`) 자체에 파일 접근 권한이
+  있는 사람/프로세스는 누구나 SELECT 한 번으로 전체 시스템(Oracle/
+  MariaDB/DB2/PostgreSQL/클라우드 Neon 포함)의 실 운영 자격증명을
+  평문으로 얻을 수 있음.
+- 제안(실행 안 함): 저장 시 암호화(예: Fernet 등 대칭키, 키는 OS
+  자격증명관리자/환경변수로 분리 보관) 도입 검토. 기존 16건
+  마이그레이션 필요.
+- 근거: REAL-DB-CONNECTION-INFO-AVAILABILITY-IN-SANDBOX-RECHECK_
+  20260919.md
