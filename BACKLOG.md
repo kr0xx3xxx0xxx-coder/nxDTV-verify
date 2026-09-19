@@ -11657,7 +11657,7 @@ THIRD-TRY_20260916.md
   사용해야하거든... 매번 화면을 새로 그려야하나?"), NXTDA-UNIFY-TO-
   SHARED-PRESET-DB-FEASIBILITY-AND-DESIGN_20260916.md
 
-### M396. 아이디어(미착수, 설계 확정됨) - BATCH-STAGE5-DRILLDOWN-P6
+### M396. (a) 해결 완료(2026-09-19), (b)(c) 미착수 - BATCH-STAGE5-DRILLDOWN-P6
 - BATCH-UI-STRUCTURE-PARITY 계획의 P6. 배치 5단계 행 상세 모달에
   개별검증 수준 드릴다운 3종이 전부 없음(0/3 확인): (a) 그룹별 비교표
   (GROUP BY 축 병렬열+Δ+판정배지), (b) PK 레코드 드릴다운
@@ -11666,6 +11666,26 @@ THIRD-TRY_20260916.md
   배치에서도 성능 부담 없음(확인됨). 우선순위: (a)→(b)→(c) — 전부
   기존 엔진 재사용 가능(신규 판정 로직 불필요), (a)가 가장 쉽고
   (c)는 배치 컨텍스트 재사용 전례가 없어 검증비용이 가장 큼.
+- (2026-09-19 갱신, M396-BATCH-STAGE5-DRILLDOWN-GROUPBY-COMPARE-IMPLEMENT)
+  (a) 그룹별 비교표 해결 완료. `services/batch_stats_execute_service.py::
+  get_latest_execute_result_for_table(group_id, target_table)`(stats_execute_
+  result 를 target_table 로 좁혀 1행만 조회, 배치 규모 무관 고정비용) +
+  신규 라우트 `GET .../stats-validation-plans/execute-result-by-table` +
+  `batchRowDetailModal`에 "그룹별 비교표" 섹션(`_batchLoadGroupCompare`,
+  모달 오픈 시 온디맨드 호출)을 추가, 렌더는 개별검증 5단계와 동일한
+  `ui/execute_result_renderer.py::renderExecute()`를 그대로 재사용(신규
+  판정 로직 없음). 실측: 신규 엔드포인트 응답시간 평균 35.48ms(원본
+  1,532,418행/목적 1,221,812행 규모 결과 대상, 5회 평균) — 온디맨드
+  1테이블 조회 원칙이 실제로 비용을 고정시킴을 확인. 이 환경엔 실
+  Oracle/Postgres 접속 자격증명이 전혀 없어(.env 부재) 100만행 규모의
+  "라이브 비교 실행" 자체는 수행하지 못했고, 대신 동일 스키마의 결과
+  레코드를 격리 DB 사본에 시드해 신규 엔드포인트·모달 렌더링 경로는
+  실제 API/실제 브라우저(Playwright, before=git worktree HEAD 스크린샷·
+  after=현재 코드 스크린샷 대조)로 검증했다(실 DB 라이브 실행 자체는
+  실측 아님 — 완료보고에 명시). (b) PK 레코드 드릴다운, (c) EXACT-DIFF는
+  이번 범위 밖(미착수).
+- 완료보고(Drive, git 미추적): G:\내 드라이브\nxDTV-verify\reports\
+  M396-BATCH-STAGE5-DRILLDOWN-GROUPBY-COMPARE-IMPLEMENT_20260919.md
 - 근거: BATCH-STAGE5-DRILLDOWN-DEPTH-INVESTIGATE-P3_20260917.md
 
 ### M397. ✅ 해결 완료(2026-09-18) - SINGLE-VALIDATION-COUNT-MISMATCH-3WAY-MISMATCH - 개별검증 COUNT 불일치 3자 불일치(CLAUDE.md 문서/코드/백엔드 정책값)를 원인 규명 후 문서·정책값을 실제 코드 동작(비차단)에 맞춰 정정
