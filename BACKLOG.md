@@ -11889,3 +11889,28 @@ THIRD-TRY_20260916.md
 - 근거: 2026-09-19 조사(본 항목, 별도 보고서는
   G:\내 드라이브\nxDTV-verify\reports\ 에 완료보고로 저장 예정),
   scripts/dev_e2e/EXECUTION-REUSE-BADGE-RELATIVE-TIME-ADD_verify.py
+
+### M405. 버그(미착수, 우선순위 미정, 정확성 문제) - LEGACY-FULL-VALIDATOR-COMPOSITE-PK-FIRST-COLUMN-ONLY
+- FULL-VALIDATOR-UNNECESSARY-SORT-REMOVE 조사 중 부수적으로 발견된
+  별개 버그.
+- 레거시 1~6단계 CLI 경로(`main.py --sql <FILE> --mode full|both`)가
+  복합 PK(컬럼 2개 이상) 테이블을 걸러내지 않고 통과시킨다
+  (`checker/pre_validator.py:95-99`는 PK "존재 여부"만 확인, 개수는
+  안 봄; `main.py:201-204`의 `can_full` 게이트도 `sample_id is None`
+  이면(--sql 파일 사용 시) PK 개수 검사 자체를 건너뜀).
+- 복합 PK 테이블이 이 경로를 타면, 청크 범위 필터
+  (`generator/sql_generator.py`의 `_build_row_hash_sql()`,
+  `pk_col = pk_cols[0]`)와 3단계 상세조회(`validator/full_validator.
+  py:208`, PK dict의 첫 값만 사용)가 **PK 컬럼 중 첫 번째 것만**
+  사용한다 — 즉 복합 PK 테이블에서는 청크 분할·상세조회 결과가
+  부정확할 수 있다(성능 문제 아니라 정확성 문제).
+- 오늘 이미 확인된 사실(실데이터에 복합 PK 최대 18개 컬럼까지
+  존재)과 결합하면, 실사용 시 이 경로로 복합 PK 테이블을 검증하면
+  잘못된 결과가 나올 실제 위험이 있다.
+- 이 레거시 경로가 지금도 실사용 중인지(오늘 다른 조사에서 "레거시
+  이지만 실사용 중"으로 확인된 바 있음), 얼마나 자주 쓰이는지에
+  따라 우선순위가 달라짐 — 사용자 판단 필요.
+- 근거: FULL-VALIDATOR-UNNECESSARY-SORT-REMOVE_20260919.md
+  (main.py:27-28, 201-204; checker/pre_validator.py:95-99;
+  generator/sql_generator.py:119-123, 588-641;
+  validator/full_validator.py:208, 311).
