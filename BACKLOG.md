@@ -11772,14 +11772,49 @@ THIRD-TRY_20260916.md
 - 근거: G:\내 드라이브\nxDTV-verify\reports\QUERY-UNIQUENESS-AXIS-VERIFY-PROJECT-GROUP-BATCH-ROWNUM_20260918.md,
   G:\내 드라이브\nxDTV-verify\reports\FULL-DATA-RESET-AND-GROUPID-SEQUENTIAL-AND-BATCHID-SAFE-FAIL-IMPLEMENT_20260918.md
 
-### M401. 아이디어(미착수, 우선순위 낮음, 참고) - GROUP-ID-COLLISION-RISK-FIX
-- 위(M400)와 동일 클래스 결함(락/재시도 없음, services/batch_group_
-  service.py:462)이지만 (a) 저장이 PK+일반 INSERT라 충돌 시 조용한
-  덮어쓰기 대신 명시적 500 실패, (b) 생성이 "새 그룹 만들기" 수동
-  클릭 시에만 발생해 빈도가 낮음 — 실질 위험이 BATCH-ID-COLLISION
-  보다 낮으나 "완전 안전"은 아님. BATCH-ID-COLLISION-RISK-FIX(M400)
-  착수 시 같은 패턴(uuid4/락)으로 함께 검토 권장.
-- 근거: G:\내 드라이브\nxDTV-verify\reports\GROUP-ID-COLLISION-RISK-PARITY-WITH-BATCH-ID-VERIFY_20260918.md
+### M401. 해결 완료 - GROUP-ID-COLLISION-RISK-FIX
+- 원래 우려(등록 당시): 위(M400)와 동일 클래스 결함(락/재시도 없음,
+  services/batch_group_service.py:462)이지만 (a) 저장이 PK+일반
+  INSERT라 충돌 시 조용한 덮어쓰기 대신 명시적 500 실패, (b) 생성이
+  "새 그룹 만들기" 수동 클릭 시에만 발생해 빈도가 낮음 — 실질 위험이
+  BATCH-ID-COLLISION보다 낮으나 "완전 안전"은 아님. BATCH-ID-
+  COLLISION-RISK-FIX(M400) 착수 시 같은 패턴(uuid4/락)으로 함께 검토
+  권장이었음.
+- 재확인(2026-09-19, BACKLOG-REGISTER-GITSTASH-SCRIPT-RISK-AND-M401-
+  STATUS-RECHECK): FULL-DATA-RESET-AND-GROUPID-SEQUENTIAL-AND-BATCHID-
+  SAFE-FAIL-IMPLEMENT(2026-09-18)에서 `services/batch_group_service.py`
+  `create_group()`의 group_id 생성이 `f"GRP_{datetime.now()...}"`
+  (타임스탬프 방식, 락/재시도 없음)에서 `f"GRP_{_next_group_seq():03d}"`
+  (신규 카운터 테이블 `DTV_validation_batch_group_seq`, INTEGER PRIMARY
+  KEY AUTOINCREMENT 단일 컬럼 + `cursor.lastrowid`)로 완전히 교체됐음을
+  현재 코드(services/batch_group_service.py:540, 585-597)로 직접 확인.
+  이 방식은 M401이 원래 요구했던 "uuid4/락 전환"과 같은 목표(채번 자체의
+  동시성 안전)를 다른 수단(락 추가가 아니라 DB 시퀀스 방식 채번)으로
+  달성한다 — 채번이 "카운터 테이블에 빈 row 1건 INSERT+커밋 후
+  lastrowid 반환"이라는 단일 원자적 INSERT 문 하나로 끝나므로, SQLite의
+  파일 단위 쓰기 직렬화(단일 writer)와 AUTOINCREMENT의 단조 증가 보장만
+  으로 두 요청이 같은 값을 받는 경우가 구조적으로 발생하지 않는다(별도
+  락/재시도 로직을 추가할 필요 자체가 없어짐 — M400에서 채택된 "실패를
+  명시화"하는 방식보다 근본적인 해결). `_next_batch_seq()`(batch_run_id
+  용, 동일 패턴)에도 같은 근거가 이미 문서화돼 있음(services/
+  batch_group_service.py:605-607 주석, "M400 group_id 채번과 동일 패턴
+  재사용" — 방향은 반대(M401 패턴을 M400측이 재사용)이지만 원리는 같음).
+  구현 보고서(FULL-DATA-RESET-AND-GROUPID-SEQUENTIAL-AND-BATCHID-SAFE-
+  FAIL-IMPLEMENT_20260918.md 246~248행)도 "채번... 락/재시도 로직 없이도
+  동시 요청 충돌을 원천적으로 배제한다"고 동일하게 결론. 직접 검증은
+  임시 DB에서 그룹 3개 연속 생성 → GRP_001/002/003 순서 발급 확인(같은
+  보고서, 파트B 직접 동작 검증) — 실제 동시(멀티스레드/프로세스) 채번
+  경합 재현 테스트까지는 없었으나, 이는 코드가 아니라 "SQLite AUTOINCREMENT
+  + 단일 writer 직렬화"라는 SQLite 자체의 구조적 보장에 의존하는 것이라
+  별도 경합 재현 없이도 결론 타당(M400의 `_next_batch_seq()`도 같은 근거로
+  이미 안전하다고 문서화된 것과 동일 논리).
+- 결론: M401이 우려하던 "채번 시 락/재시도 없음" 문제 자체가 원인
+  제거(counter-table 기반 채번으로 전환)되어 해소됐다고 판단 — "해결
+  완료"로 갱신. (INSERT OR REPLACE→INSERT 명시적 실패 전환 같은 M400식
+  안전망은 group_id 쪽엔 애초부터 있었고 이번 재확인 대상이 아님.)
+- 근거: G:\내 드라이브\nxDTV-verify\reports\GROUP-ID-COLLISION-RISK-PARITY-WITH-BATCH-ID-VERIFY_20260918.md,
+  G:\내 드라이브\nxDTV-verify\reports\FULL-DATA-RESET-AND-GROUPID-SEQUENTIAL-AND-BATCHID-SAFE-FAIL-IMPLEMENT_20260918.md,
+  services/batch_group_service.py(2026-09-19 코드 직접 확인)
 
 ### M402. 아이디어(보류, 사용자 판단 필요) - PROJECT-GROUP-BATCH-ID-SCHEME-UNIFY-3DIGIT-TEXT-PROPOSAL
 - 사용자 제안: project_id/group_id/batch_id를 전부 3자리 텍스트로
@@ -11808,3 +11843,49 @@ THIRD-TRY_20260916.md
   목적(예: 직접 DB 리포트/BI 도구 등, 위 가드를 안 거치는 조회)으로
   중요해질 경우에만 재검토.
 - 근거: G:\내 드라이브\nxDTV-verify\reports\PROJECT-SOFT-DELETE-CHILD-GROUP-CASCADE-CONSISTENCY-VERIFY_20260918.md
+
+### M404. 아이디어(미착수, 우선순위 중간) - E2E-VERIFICATION-SCRIPTS-GITSTASH-TO-WORKTREE-MIGRATE
+- 배경: 이 프로젝트는 "git stash 절대 금지, worktree add --detach만
+  사용"(CLAUDE.md 38번 규칙 계열, `.claude/hooks/pretooluse_stash_guard.py`
+  PreToolUse 훅으로 `git stash` 계열 명령을 자동 차단)을 원칙으로 하는데도,
+  2026-09-18~19 사이 최소 2회 E2E 검증 스크립트가 `git stash`를 서브프로세스로
+  직접 실행해 이 원칙을 우회했다(훅은 Bash/PowerShell 도구 호출을 막을 뿐,
+  파이썬 스크립트 내부의 `subprocess.run(["git","stash"])` 호출까지는 막지
+  못함 — 우회 경로가 실제로 존재함이 확인됨). 두 사고 모두 사후 복구 자체는
+  성공했으나(즉시 피해 없음), "공유 워킹트리를 대상으로 stash/pop을 실행하는
+  것"은 그 사이 실행 창(stash~pop) 동안 다른 세션의 미커밋 작업이 함께
+  스태시되거나, 스크립트가 예외로 중단돼 pop을 못 하고 끝나면 그 세션의
+  변경사항이 stash에 방치될 수 있는 구조적 위험이며, 운이 좋아서 무사했던
+  것이지 구조적으로 안전한 방식이 아니다.
+- 조사 결과(2026-09-19, 파트1): 코드 저장소(nxDTV) 전체를 `git stash`/`stash`
+  키워드로 grep 전수 검색한 결과, 실제로 `git stash`를 서브프로세스로 직접
+  실행하는 스크립트는 다음 1건으로 확인됨:
+  - `scripts/dev_e2e/EXECUTION-REUSE-BADGE-RELATIVE-TIME-ADD_verify.py:175`
+    (`subprocess.run(["git", "stash"], ...)`), 188행(`git stash pop`) — main()
+    에서 수정 전/후 스크린샷 대조용으로 사용.
+  - 지침이 두 번째로 추정했던 `scripts/dev_e2e/SAME-FILENAME-FULL-REPLACE-
+    WARNING-CHECK-AND-ADD_verify.py`는 실제로는 `git stash`를 쓰지 않음(파일
+    내 `subprocess` 호출은 서버 프로세스 기동/종료용 `netstat`/`taskkill`
+    뿐)으로 확인 — 지침의 추정이 틀렸음.
+  - 그 외 "stash" 문자열이 나오는 파일(`.claude/hooks/pretooluse_stash_guard.py`
+    와 이를 등록하는 `.claude/settings.json`, `docs/archive/history_md/*`
+    세션 핸드오프 문서 3건, `docs/PROJECT_FILE_FOLDER_CLEANUP_AUDIT.md`,
+    `docs/DEFERRED_BACKLOG_AFTER_SINGLE_COMPLETION.md`,
+    `docs/SINGLE_VALIDATION_BASELINE_FREEZE.md`,
+    `scripts/dev_e2e/diagnosis_route_contract_key_dialect_verify.py`)는 모두
+    (a) stash를 막는 훅 자체이거나 (b) 과거 이력을 서술한 문서, 또는 (c) 주석
+    상으로만 "stash 금지 규칙 준수"를 언급할 뿐 실제로는 `git show HEAD:...`
+    방식을 써서 stash를 실행하지 않는 코드 — 실행 코드상 위험은 없음.
+- 작업 제안: 위 1개 스크립트의 before/after 대조 방식을 `git stash`/`pop` 대신
+  CLAUDE.md 26번 규칙이 이미 권장하는 `git worktree add --detach`(origin/main
+  또는 현재 HEAD 기준 임시 워크트리에서 수정 전 상태를 그대로 열어 대조)로
+  전환. 패턴은 이미 같은 저장소 내 `scripts/dev_e2e/diagnosis_route_contract_
+  key_dialect_verify.py`(주석: "작업트리 훼손·stash 금지 규칙 준수" —
+  `git show HEAD:...` 소스를 별도 모듈로 로드해 같은 프로세스에서 대조)와
+  CLAUDE.md 38번 규칙이 이미 지정한 `MV_DATA_DIR`/`MV_PRESET_DATA_DIR` 임시
+  디렉터리 격리 + 별도 포트 기동 방식(예: `scripts/dev_e2e/
+  f12_cascade_delete_ui_verify.py`)이 있어 참고 가능. 신규 메커니즘 발명 없이
+  기존 두 관례를 조합하면 됨.
+- 근거: 2026-09-19 조사(본 항목, 별도 보고서는
+  G:\내 드라이브\nxDTV-verify\reports\ 에 완료보고로 저장 예정),
+  scripts/dev_e2e/EXECUTION-REUSE-BADGE-RELATIVE-TIME-ADD_verify.py
