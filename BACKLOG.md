@@ -11983,3 +11983,28 @@ THIRD-TRY_20260916.md
   마이그레이션 필요.
 - 근거: REAL-DB-CONNECTION-INFO-AVAILABILITY-IN-SANDBOX-RECHECK_
   20260919.md
+
+### M407. 버그(미착수, 우선순위 높음, 재현 간헐적) - BATCH-BACKEND-INTERMITTENT-FULL-HANG-ON-UPLOAD-FOLLOWUP
+- BATCH-TAB1-CMDBAR-ADAPTER-SLOT-FILL-PHASE1의 E2E 검증(13차 시도)
+  중 발견된, 그 작업과는 무관한 별건 백엔드 결함.
+- 일괄검증 1번탭에서 "엑셀 업로드 직후" 또는 "같은 그룹에 짧은
+  간격으로 두 번째 업로드"를 할 때, 서버 프로세스가 죽지는 않지만
+  (포트는 계속 리슨 유지) **신규 요청 전체에 응답 불능(hang)** 상태에
+  빠지는 현상이 여러 차례 재현됨.
+- 관련 엔드포인트(간헐적으로 무응답): `GET /api/batch-runs/recent`,
+  `GET /batch/runs/{id}/wrapper-results`,
+  `GET /api/batch-groups/{gid}/latest-targets`,
+  `GET /api/batch-runs?group_id=...`,
+  `POST /batch/upload`(같은 그룹 두 번째 호출 시).
+- 재현 조건은 명확히 좁혀지지 않음(그룹을 분리해도 완전히 회피
+  안 됨, 타이밍 대기로도 해소 안 됨) — 다만 한 번은 서버 stdout이
+  온전히 남아, 순수 urllib GET / (브라우저 무관)조차 무응답임을
+  확인해 **서버 프로세스 자체의 전면 hang**임이 확정됨.
+- 오늘 SQLITE-CONCURRENT-WRITE-SAFETY-CONFIG-CHECK가 규명한 "1시간
+  정체" 사고와는 별개 현상으로 추정(그건 브라우저 커넥션풀 소진이
+  원인으로 확정됐고 SQLite 락 흔적은 0건이었음) — 다만 이번 것도
+  SQLite 동시성(락 경합) 관련 가능성이 있어 보이나 미확정.
+- **후속 조사 필요**: py-spy 등으로 hang 발생 시점의 실제 스택을
+  직접 확보해 원인(SQLite 락/무한루프/스레드 교착 등)을 규명할 것.
+- 근거: BATCH-TAB1-CMDBAR-ADAPTER-SLOT-FILL-PHASE1_20260922.md
+  ("E2E 경위" 및 "발견된 별건 이슈" 절).
