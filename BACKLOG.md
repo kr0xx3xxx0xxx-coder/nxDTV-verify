@@ -12008,3 +12008,78 @@ THIRD-TRY_20260916.md
   직접 확보해 원인(SQLite 락/무한루프/스레드 교착 등)을 규명할 것.
 - 근거: BATCH-TAB1-CMDBAR-ADAPTER-SLOT-FILL-PHASE1_20260922.md
   ("E2E 경위" 및 "발견된 별건 이슈" 절).
+
+### M408. 아이디어(우선순위 중) - BATCH-CMDBAR-STAGE2TO5-EXTEND
+- 1번탭 하단바는 오늘(2026-09-22) 공용 함수(mode 파라미터)로 진짜
+  통합됐으나, 2~5번탭(검증대상/COUNT, 후보 컬럼 선정, 전체
+  통계검증, 결과 요약)에는 아직 하단바가 연결 안 됨
+  (BATCH-TABS-2TO5-CMDBAR-ADAPTER-SLOT-FILL-PHASE2, 미실행).
+- 착수 지점: `_mvValidationStageCmdBarConfig(mode)` 안의 batch
+  stage 판정을 1→5로 확장. 재사용 가능한 기존 신호:
+  `_batchCountStale`/`_batchFullStale`, `computeBatchStepAvail()`.
+- 근거: BATCH-TABS-AND-BOTTOM-BAR-SHARED-COMPONENT-MODE-PARAM-
+  FEASIBILITY_20260922.md, BATCH-INDIVIDUAL-GENUINE-SHARE-COMPLETE-
+  ALL-REMAINING-GAPS_20260922.md.
+
+### M409. 아이디어(우선순위 낮음) - BATCH-RUN-LOCK-MECHANISM-UNIFY
+- 일괄검증의 실행 중 화면 잠금이 개별검증(wrapper 마스크 방식,
+  최신)과 달리 예전 방식(`[data-run-lock]` 속성 열거)을 아직 쓰고
+  있음.
+- 신호 자체는 오늘(2026-09-22) 양방향 연결됐으나
+  (BATCH-INDIVIDUAL-GENUINE-SHARE-COMPLETE-ALL-REMAINING-GAPS
+  파트C), 메커니즘 교체는 보류됨 — `data-run-lock`이 결과확인/진단
+  등 이번 범위 밖 화면까지 폭넓게 쓰여 "readonly 허용"/"중단 버튼
+  예외" 같은 세분화 규칙을 wrapper 경계 밖으로 정확히 빼내는 별도
+  설계가 필요.
+- 근거: 같은 보고서 파트C "보류(구조적 위험 분석)" 절.
+
+### M410. 아이디어(우선순위 낮음) - BATCH-CURRENT-BADGE-SUPERSEDED-BY-HINT
+- "이전본" 배지가 *왜* 밀렸는지는 알려주지만 *누구에게* 밀렸는지는
+  안 알려줌.
+- `(group_id, target_table)` 기준 현재 row의 source_batch를 배치
+  상세 조회 시 함께 JOIN해 `current_source_batch` 필드 1개만
+  추가하면 툴팁에 "BAT_007이 이 테이블을 더 최근에 등록함" 같은
+  구체 안내 가능.
+- 근거: BATCH-DETAIL-CMDBAR-MISMATCH-AND-ROW-LEVEL-LATEST-
+  CONFUSION-VERIFY_20260922.md ②.
+
+### M411. 버그(미착수, 보안 인접) - COUNT-TOKENLESS-EXCEPTION-STILL-NEEDED-RECHECK
+- `services/workflow_stage_guard.py`/`routes/count_route.py`/
+  `schemas/request_models.py`의 "배치검증(batchRunValidation)도
+  /count를 공유하므로 토큰 미동반 호출을 통과시킨다"는 주석·예외
+  로직이, 그 batchRunValidation 함수 자체가 오늘(2026-09-22) 완전
+  중복 판정으로 삭제되며 근거를 잃었을 가능성.
+- 보안 게이트 로직이라 별도 재검토 필요(이 tokenless 예외가 여전히
+  다른 정당한 이유로 필요한지, 아니면 막아도 되는지).
+- 근거: BATCH-RESULTCARD-3BUTTONS-DUPLICATE-CHECK-AND-
+  REMOVE_20260922.md "부가 발견" 절.
+
+### M412. 아이디어(우선순위 낮음, 문서화) - ORACLE-PARALLEL-HINT-ENV-VARS-UNDOCUMENTED
+- `MV_ORACLE_PARALLEL_HINT`(기본 사실상 항상 켜짐)/
+  `MV_ORACLE_PARALLEL_DOP`(기본 4)/`MV_ORACLE_PARALLEL_MIN_ROWS`
+  (기본 100만행) 3개 환경변수가 README/handoff 어디에도 언급
+  없음(코드 2곳에만 존재).
+- 여러 공공기관에 배포되는 특성상, EE+PX 환경에 신규 배포 시 이
+  기능이 이미 기본 활성 상태로 조용히 작동한다는 걸 운영 담당자가
+  모를 수 있음.
+- 근거: ORACLE-EDITION-AUTO-DETECT-PARALLEL-HINT-CONDITIONAL-
+  APPLY-FEASIBILITY-VERIFY_20260922.md.
+
+### M413. 버그(미착수, 참고용 정리 필요) - DEV-E2E-STDOUT-PIPE-DEADLOCK-PATTERN
+- `scripts/dev_e2e/*.py` 다수가 `subprocess.Popen(...,
+  stdout=subprocess.PIPE)`로 서버를 띄우고 실행 중 파이프를 안
+  읽다가(끝에서 한 번에 read()) 로그가 늘면 Windows 파이프 버퍼
+  (약 64KB)가 가득 차 서버가 블록되는 잠재적 교착 패턴을 공유하고
+  있을 수 있음(2026-09-22 한 스크립트에서 실제 재현·해결).
+- 제품 코드는 무관, 검증 스크립트만의 문제.
+- 근거: BATCH-SCROLL-BOTTOM-REFRESH-AND-CMDBAR-STORED-STATE-NOT-
+  RESTORED_20260922.md "부록" 절.
+
+### M414. 아이디어(우선순위 낮음, 대규모) - PROJECT-WIDE-DUPLICATE-LOGIC-REMAINING-31
+- PROJECT-WIDE-DUPLICATE-LOGIC-FULL-AUDIT가 찾은 34건 중 상위 3건
+  (DUPLICATE-LOGIC-AUDIT-TOP3-URGENT-FIX로 완료)을 제외한 나머지
+  31건이 미착수.
+- 우선순위·상세 위치는 감사 보고서 표 그대로 재사용 가능(4~34순위,
+  위험도×난이도 정렬 완료).
+- 근거: PROJECT-WIDE-DUPLICATE-LOGIC-FULL-AUDIT_20260922.md
+  "제안해결안" 절 전체.
