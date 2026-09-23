@@ -12083,3 +12083,42 @@ THIRD-TRY_20260916.md
   위험도×난이도 정렬 완료).
 - 근거: PROJECT-WIDE-DUPLICATE-LOGIC-FULL-AUDIT_20260922.md
   "제안해결안" 절 전체.
+
+### M415. 버그(미착수, 완료된 모듈의 별개 결함) - BATCH-STAGE2-CACHE-NOT-INVALIDATED-ON-SAME-BATCH-STATUS-CHANGE
+- "쿼리 검토" 통과 직후 "다음 ▶"을 눌러도 2단계 화면이 즉시 새
+  상태("포함")로 안 바뀌고 옛 캐시값("제외")을 계속 보여줌.
+- 원인: `showBatchStep(step)`이 "배치(범위)가 바뀔 때만" 2단계
+  데이터를 재조회하는데, 쿼리검토→다음 사이엔 같은 배치라 재조회
+  자체가 스킵됨(`ui/tabler_renderer.py:11370` 부근).
+- 새로고침/그룹 재진입 시엔 정상 값이 보임(우회 가능).
+- 근거: BATCH-QUERY-REVIEW-DB-VERIFY-SYNC-TO-TARGET-TABLE-
+  CONFIG_20260923.md "추가 발견 사항" 절.
+
+### M416. 아이디어(우선순위 낮음, 문서 정정) - BATCH-STAGE2-ELIGIBILITY-TOOLTIP-TEXT-INCORRECT
+- 2단계 "검증대상" 컬럼 헤더 툴팁이 "현재 검증대상(is_current)
+  여부"라고 적혀있으나, 실제 판정 로직은 is_current와 무관하게
+  db_valid_status=PASSED + included + parse_ok 3조건으로만
+  결정됨(`ui/tabler_renderer.py:12868`).
+- 문구만 실제 기준에 맞게 정정 필요.
+- 근거: BATCH-STAGE2-GRID-ELIGIBILITY-COLUMN-MEANING-
+  EXPLAIN_20260923.md.
+
+### M417. 버그(미착수, 원인 미상) - TEST-UNIFIED-TABLE-SHELL-SHARED-PREMISE-BROKEN
+- `tests/test_batch_display_unification.py::test_unified_table_
+  shell_shared`가 원래 "공유 shell 함수가 2곳 이상에서 호출된다"를
+  전제로 작성됐으나, 순수 HEAD(커밋 d59be312)에서도 이미 호출부가
+  1곳뿐이라 전제 자체가 깨져 있었음(5단계 결과확인 쪽이 언제부턴가
+  이 공유 shell을 더 이상 안 쓰게 된 것으로 추정, 원인 미상).
+- 근거: BATCH-STAGE2-DETAIL-GRID-REDUNDANT-COLUMNS-CHECK-AND-
+  FIX_20260923.md "미해결/후속 필요 항목" 2번.
+
+### M418. 버그(미착수, 대규모, 원인 미상) - BATCH-KEYWORD-TEST-SUBSET-LARGE-INSTABILITY
+- `pytest tests/ -k batch` 실행 시 75 failed/8 errors(파일
+  기준으론 최대 106 failed·14 errors까지 관찰) — 오늘 여러 지침이
+  각자 "내 변경과 무관함"을 worktree 대조로 확인했지만, 이 대규모
+  실패 자체의 근본 원인(다수 파일에 걸친 white-box literal
+  assertion들이 최근 리팩토링들에 rot된 것으로 추정)은 아직 아무도
+  조사하지 않았음.
+- 근거: BATCH-STAGE2-DETAIL-GRID-REDUNDANT-COLUMNS-CHECK-AND-
+  FIX_20260923.md "미해결/후속 필요 항목" 3번(및 오늘 여러
+  완료보고의 "무관한 기존 실패" 각주에서 반복 관찰됨).
