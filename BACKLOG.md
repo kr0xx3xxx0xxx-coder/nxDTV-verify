@@ -12090,6 +12090,13 @@ THIRD-TRY_20260916.md
   수정 지침 DEV-E2E-SERVER-LAUNCH-HELPER-AND-PIPE-DEADLOCK-FIX
   발행(진행 중). 근거: BATCH-BACKEND-HANG-PIPE-DEADLOCK-HYPOTHESIS-
   VERIFY_20260923.md
+- 갱신(2026-09-25): 완료. 공용 기동 도우미
+  scripts/dev_e2e/_server_launch_helper.py + 가드 테스트
+  tests/test_dev_e2e_no_popen_pipe_guard.py(수정 전 44건 위반→0건),
+  44개 스크립트 전환 완료. 커밋 52f4fa2b(파트A), 39b5f5e0(파트B).
+  대표 3개 중 1개 PASS, 2개는 UI 어서션 타임아웃(원인 미확정 — M428
+  참고), 나머지 41개는 컴파일+가드로만 확인. 근거: DEV-E2E-SERVER-
+  LAUNCH-HELPER-AND-PIPE-DEADLOCK-FIX_20260924.md
 
 ### M414. 아이디어(우선순위 낮음, 대규모) - PROJECT-WIDE-DUPLICATE-LOGIC-REMAINING-31
 - PROJECT-WIDE-DUPLICATE-LOGIC-FULL-AUDIT가 찾은 34건 중 상위 3건
@@ -12123,6 +12130,10 @@ THIRD-TRY_20260916.md
   일괄검증 화면엔 "품질점검" 버튼이 없음(당초 추정 정정). 근거:
   BATCH-STAGE2-CACHE-INVALIDATE-ON-DB-VALID-STATUS-CHANGE-
   FIX_20260923.md
+- 갱신(2026-09-25): 잔여 ③("오류 행 섞인 배치") 재확인 결과: 재현
+  불가. 쿼리 검토 게이트가 오류 행 1건만 있어도 배치 전체를 막아
+  2단계 진입 자체가 안 됨(수정 전/후 동일, dd0884f0와 무관). 게이트
+  정책 변경(M425)으로 해소 예정.
 
 ### M416. 아이디어(우선순위 낮음, 문서 정정) - BATCH-STAGE2-ELIGIBILITY-TOOLTIP-TEXT-INCORRECT
 - 2단계 "검증대상" 컬럼 헤더 툴팁이 "현재 검증대상(is_current)
@@ -12187,6 +12198,14 @@ THIRD-TRY_20260916.md
 - 조사 지침 BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT 발행.
 - 근거: M418 분류 작업(BATCH-KEYWORD-TEST-SUBSET-INSTABILITY-
   ROOT-CAUSE-CLASSIFY_20260923.md).
+- 갱신(2026-09-25): 원인 확정: 7건 중 6건 테스트 부패(하드코딩
+  문구 낡음 3건, 잘못된 monkeypatch 대상 ses._cmn_db_fetch_all —
+  실제 호출은 cmn_db_fetch_select_readonly — 3건, unittest
+  setUpClass가 운영 DB 리다이렉트 fixture보다 먼저 실행되는 순서
+  결함 1건 — 일부 중복 집계), 실제 코드 차이 1건(비라이브 shadow
+  모듈 validation_execute_core.compare_stats_rows가 tgt_only 키를
+  여전히 반환 — 라이브 execute_stats_validation은 2분류). 근거:
+  BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
 
 ### M421. 버그(미착수, 테스트 안전) - TEST-FAKE-DB-CONNECTOR-STALE-REAL-CONNECT
 - M418 A-2 분류 11건: 가짜 DB 연결 장치(monkeypatch)가 옛 함수명을
@@ -12218,3 +12237,88 @@ THIRD-TRY_20260916.md
   결과로 확정할 것.
 - 근거: BATCH-BACKEND-HANG-PIPE-DEADLOCK-HYPOTHESIS-
   VERIFY_20260923.md.
+- 갱신(2026-09-25): 종결(해당 없음). 운영 서버는 Windows에서 기동
+  시 자기 자신을 분리 기동하고 stdout/stderr를
+  logs/server_console.log 파일로 보냄(web_server.py
+  531/548/562-618행, 코드 확인) — 콘솔/파이프 막힘 구조와 무관.
+  근거: DEV-E2E-SERVER-LAUNCH-HELPER-AND-PIPE-DEADLOCK-
+  FIX_20260924.md 파트0.
+
+### M425. 결정(확정, 2026-09-25) - BATCH-QUERY-REVIEW-GATE-POLICY-B
+- 쿼리 검토 오류 행 처리 정책 B안 확정: 오류 행은 "오류"로만
+  표시("제외" 표현 금지), 정상 행 ≥1이면 안내문 + "다음 ▶" 활성 →
+  사용자가 오류 행을 두고 진행하거나 엑셀 수정 후 재업로드 중 선택,
+  전부 오류면 잠김 유지, 오류 3종(DB검증 실패/문법 오류/파일 내부
+  중복) 동일 처리·중복은 전부 오류 표시, 2단계에서도 "오류" 표시·
+  이후 단계 대상 제외.
+- 구현 지침 BATCH-QUERY-REVIEW-GATE-PROCEED-WITH-ERROR-ROWS 발행.
+- 관련: M415, M408.
+
+### M426. 버그(미착수) - DEV-E2E-ISOLATED-SERVER-SHARES-PROD-LOG-FILE
+- 격리 테스트 서버도 web_server.py 분리기동 구조상
+  <server_root>/logs/server_console.log·server.log에 기록 → 운영
+  8000과 같은 로그 파일을 공유(테스트 로그가 운영 로그에 섞임).
+- 근거: DEV-E2E-SERVER-LAUNCH-HELPER-AND-PIPE-DEADLOCK-
+  FIX_20260924.md
+
+### M427. 확인 필요 - DEV-E2E-PIPE-HANG-VS-BREAKAWAY-CONTRADICTION
+- 운영/도우미 기동 시 서버가 출력을 파일로 보낸다면 PIPE 교착이
+  날 수 없는데, 2026-09-23 대조실험에선 PIPE 방식에서 hang이
+  재현됨 — 어떤 조건에서 분리 기동이 생략되는지 미확인.
+- 도우미의 15회 무hang 결과가 도우미 효과의 증거인지도 이 확인에
+  달림(가드 테스트 자체는 유효).
+- 근거: DEV-E2E-SERVER-LAUNCH-HELPER-AND-PIPE-DEADLOCK-
+  FIX_20260924.md
+
+### M428. 버그(미착수) - DEV-E2E-TAB1-ERROR-STATE-ASSERTION-TIMEOUT
+- BATCH-TAB1-CMDBAR-ADAPTER-SLOT-FILL-PHASE1_verify.py,
+  BATCH-INDIVIDUAL-GENUINE-SHARE-..._partA_verify.py가 오류상태
+  버튼 텍스트 대기에서 타임아웃.
+- 전환 전 커밋과의 대조 없이 "무관"으로 판단됨(미확정). 후보:
+  8946decd('재검토' 라벨 폐지) 또는 4ec60d13 — 추정.
+- 근거: DEV-E2E-SERVER-LAUNCH-HELPER-AND-PIPE-DEADLOCK-
+  FIX_20260924.md
+
+### M429. 리팩토링(우선순위 1) - STATS-SQL-BUILDER-DUAL-GENERATOR
+- stats_sql_builder.py에 build_stats_sql_pair(개별 단일세트·배치
+  공용, 라이브)와 build_stats_sql/SqlGenerator(개별 다중세트
+  execute_set_route 라이브 + 레거시 batch_runner) 두 생성기가 공존.
+- execute_set_route를 build_stats_sql_pair 기반으로 이전 검토.
+  과거 스키마 qualify 버그가 SqlGenerator 쪽에 있었던 이력 있음.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
+
+### M430. 리팩토링(우선순위 2) - CANDIDATE-ORCHESTRATION-FLOW2-DUAL
+- 후보추천 오케스트레이션이
+  single_validation_analyze_service.py(개별)와
+  column_candidate_gen_service.py(Flow2/그룹)로 2계열. 저수준
+  candidate_engine은 공유.
+- Flow2가 현재 일괄 화면의 실사용 경로인지 먼저 확인 필요(감사에서
+  미확정). nxTDA 이관 가능 영역이므로 대규모 작업 전 사용자 확인.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
+
+### M431. 결정 필요(우선순위 3) - SHADOW-EXECUTE-CORE-KEEP-OR-REMOVE
+- validation_execute_core.py/validation_job_core.py shadow 계열
+  (flag OFF, 비라이브) 존치/폐기 결정. 이미 정책 드리프트(tgt_only
+  잔존) 발생.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md(M420).
+
+### M432. 결정 필요(우선순위 4) - LEGACY-BATCH-RUNNER-REMOVE
+- services/batch_runner.py(일괄 전용 전체 재구현,
+  MV_BATCH_LEGACY_EXEC=1일 때만 활성, 실측 실행 0줄) 삭제 여부 —
+  의존 레거시 테스트 함께 정리 필요.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
+
+### M433. 확인 필요 - SINGLE-RUN-FACADE-USAGE-SCOPE
+- 배치는
+  single_validation_run_facade.run_single_validation_standard()
+  (로직을 품은 래퍼)를 거쳐 core를 호출하는데, 개별 화면 경로가 이
+  facade를 쓰는지 여부가 감사에서 측정되지 않음(개별 측 coverage가
+  직접 함수호출 방식이라 facade 0줄).
+- 개별이 안 쓰면 facade는 사실상 일괄 전용 로직 계층.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
+
+### M434. 잔여 - BATCH-SINGLE-SHARE-AUDIT-ORACLE-JOIN-UNMEASURED
+- 공유 실태 감사 파트C 실측은 PostgreSQL 단일테이블 1건뿐(Oracle·
+  JOIN 미시도, Playwright 미사용). JOIN은 과거 스키마 qualify
+  버그 이력이 있는 영역.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
