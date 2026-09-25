@@ -12008,6 +12008,12 @@ THIRD-TRY_20260916.md
   직접 확보해 원인(SQLite 락/무한루프/스레드 교착 등)을 규명할 것.
 - 근거: BATCH-TAB1-CMDBAR-ADAPTER-SLOT-FILL-PHASE1_20260922.md
   ("E2E 경위" 및 "발견된 별건 이슈" 절).
+- 갱신(2026-09-24): 종결(M413으로 흡수). 제품 결함 아님 — dev_e2e
+  스크립트가 서버를 `Popen(stdout=PIPE)`로 띄우고 미소비 →
+  로그 flush에서 요청 스레드가 영구 블록되는 현상이었음. 대조실험
+  결과 PIPE 방식 6회차 hang / 파일 리다이렉트 방식 15회 무hang,
+  py-spy로 블록 스택 확보. 근거:
+  BATCH-BACKEND-HANG-PIPE-DEADLOCK-HYPOTHESIS-VERIFY_20260923.md
 
 ### M408. 아이디어(우선순위 중) - BATCH-CMDBAR-STAGE2TO5-EXTEND
 - 1번탭 하단바는 오늘(2026-09-22) 공용 함수(mode 파라미터)로 진짜
@@ -12020,6 +12026,11 @@ THIRD-TRY_20260916.md
 - 근거: BATCH-TABS-AND-BOTTOM-BAR-SHARED-COMPONENT-MODE-PARAM-
   FEASIBILITY_20260922.md, BATCH-INDIVIDUAL-GENUINE-SHARE-COMPLETE-
   ALL-REMAINING-GAPS_20260922.md.
+- 갱신(2026-09-24): 코드 저장소에서
+  `git log --oneline --grep "STAGE2TO5" --grep "SLOT-FILL-PHASE2"`
+  실행 결과 일치 커밋 0건(전체 히스토리 2653커밋, 얕은 clone
+  아님 확인) — 완료 여부 확인 필요(커밋 미발견). 상태는 변경하지
+  않음(추정으로 완료 처리 금지, 36번 규칙).
 
 ### M409. 아이디어(우선순위 낮음) - BATCH-RUN-LOCK-MECHANISM-UNIFY
 - 일괄검증의 실행 중 화면 잠금이 개별검증(wrapper 마스크 방식,
@@ -12074,6 +12085,11 @@ THIRD-TRY_20260916.md
 - 제품 코드는 무관, 검증 스크립트만의 문제.
 - 근거: BATCH-SCROLL-BOTTOM-REFRESH-AND-CMDBAR-STORED-STATE-NOT-
   RESTORED_20260922.md "부록" 절.
+- 갱신(2026-09-24): 정정 — 실측 hang 시점 누적 출력은 약 4KB(기존
+  본문의 "약 64KB" 추정은 틀림). 동일 패턴 스크립트는 44개로 확인.
+  수정 지침 DEV-E2E-SERVER-LAUNCH-HELPER-AND-PIPE-DEADLOCK-FIX
+  발행(진행 중). 근거: BATCH-BACKEND-HANG-PIPE-DEADLOCK-HYPOTHESIS-
+  VERIFY_20260923.md
 
 ### M414. 아이디어(우선순위 낮음, 대규모) - PROJECT-WIDE-DUPLICATE-LOGIC-REMAINING-31
 - PROJECT-WIDE-DUPLICATE-LOGIC-FULL-AUDIT가 찾은 34건 중 상위 3건
@@ -12083,6 +12099,12 @@ THIRD-TRY_20260916.md
   위험도×난이도 정렬 완료).
 - 근거: PROJECT-WIDE-DUPLICATE-LOGIC-FULL-AUDIT_20260922.md
   "제안해결안" 절 전체.
+- 갱신(2026-09-24): 감사 4위였던 dialect 매핑 사본이 실제로는
+  4개가 아니라 7개(sql_cte_utils.py, sql_snapshot_masker.py 추가
+  발견). 정상 입력 4종은 7곳 모두 동일 결과지만, 별칭·공백·빈값·
+  mariadb 등 경계값에서는 사본마다 결과가 다름 — 통합 보류,
+  사용자 결정 대기. 근거: DUPLICATE-LOGIC-DIALECT-MAPPING-4X-
+  CONSOLIDATE_20260923.md
 
 ### M415. 버그(미착수, 완료된 모듈의 별개 결함) - BATCH-STAGE2-CACHE-NOT-INVALIDATED-ON-SAME-BATCH-STATUS-CHANGE
 - "쿼리 검토" 통과 직후 "다음 ▶"을 눌러도 2단계 화면이 즉시 새
@@ -12093,6 +12115,14 @@ THIRD-TRY_20260916.md
 - 새로고침/그룹 재진입 시엔 정상 값이 보임(우회 가능).
 - 근거: BATCH-QUERY-REVIEW-DB-VERIFY-SYNC-TO-TARGET-TABLE-
   CONFIG_20260923.md "추가 발견 사항" 절.
+- 갱신(2026-09-24): 완료(커밋 dd0884f0). 쿼리검토·COUNT상세 성공
+  시 공용 무효화 함수로 2단계 캐시를 리셋하도록 수정. 실브라우저
+  수정 전("제외")/후("포함") 확인(Claude 웹이 스크린샷 직접
+  대조). 잔여: "오류 행 섞인 배치" 시나리오는 스크린샷이 중복
+  파일이라 미검증 — M413 수정 지침 파트 C에서 재확인 예정. 참고:
+  일괄검증 화면엔 "품질점검" 버튼이 없음(당초 추정 정정). 근거:
+  BATCH-STAGE2-CACHE-INVALIDATE-ON-DB-VALID-STATUS-CHANGE-
+  FIX_20260923.md
 
 ### M416. 아이디어(우선순위 낮음, 문서 정정) - BATCH-STAGE2-ELIGIBILITY-TOOLTIP-TEXT-INCORRECT
 - 2단계 "검증대상" 컬럼 헤더 툴팁이 "현재 검증대상(is_current)
@@ -12111,6 +12141,9 @@ THIRD-TRY_20260916.md
   이 공유 shell을 더 이상 안 쓰게 된 것으로 추정, 원인 미상).
 - 근거: BATCH-STAGE2-DETAIL-GRID-REDUNDANT-COLUMNS-CHECK-AND-
   FIX_20260923.md "미해결/후속 필요 항목" 2번.
+- 갱신(2026-09-24): 종결. 공유 shell 호출부 1곳은 의도된 분리로
+  판정, 현재 통과. 근거: BATCH-KEYWORD-TEST-SUBSET-INSTABILITY-
+  ROOT-CAUSE-CLASSIFY_20260923.md
 
 ### M418. 버그(미착수, 대규모, 원인 미상) - BATCH-KEYWORD-TEST-SUBSET-LARGE-INSTABILITY
 - `pytest tests/ -k batch` 실행 시 75 failed/8 errors(파일
@@ -12122,3 +12155,66 @@ THIRD-TRY_20260916.md
 - 근거: BATCH-STAGE2-DETAIL-GRID-REDUNDANT-COLUMNS-CHECK-AND-
   FIX_20260923.md "미해결/후속 필요 항목" 3번(및 오늘 여러
   완료보고의 "무관한 기존 실패" 각주에서 반복 관찰됨).
+- 갱신(2026-09-24): 원인 분류 완료(수정은 미착수). 원 명령은
+  collection error 2건(test_11def_scenarios.py,
+  test_12k_stress.py — 삭제된 설정파일 참조)으로 전량 Interrupted
+  → 사람마다 옵션이 달라 75~106건으로 들쭉날쭉했던 것.
+  --continue-on-collection-errors 기준 99건(89 failed+10 errors,
+  2회 동일, #84/#99는 같은 노드 중복 집계): 테스트부패 57 /
+  환경 25 / 실제회귀 0(확인 범위 내) / 판단불가 17. 고정 커밋
+  e22ec7f8. 근거: BATCH-KEYWORD-TEST-SUBSET-INSTABILITY-ROOT-
+  CAUSE-CLASSIFY_20260923.md(및 첨부 "_전체목록").
+
+### M419. 완료 기록 - BATCH-STAGE1-QUERY-REVIEW-BUTTON-ALWAYS-VISIBLE-LIKE-TABS
+- 커밋 4ec60d13. 배치 미선택 시 "쿼리 검토" 버튼을 숨기지 않고
+  잠금 표시로 항상 노출하도록 변경.
+- 증적 결함: 스크린샷 3장이 scratchpad에만 있고 Drive에 없음
+  (Claude 웹 미확인), 관련 테스트 6건 실패 원인을 "인코딩"으로
+  단정했으나 M418 분류에선 같은 테스트가 "판단불가" — 설명
+  불일치.
+- 근거: 코드 저장소 커밋 4ec60d13, M418 항목(같은 날 분류).
+
+### M420. 버그(미착수, 우선순위 높음) - BATCH-SINGLE-PARITY-TESTS-7-FAILING
+- 개별↔일괄 동등성 테스트 7건 실패: test_batch_flow2_candidate_
+  core_parity, test_batch_profile_candidate_parity,
+  test_numeric_tolerance_policy::test_13,
+  test_single_batch_plan_parity,
+  test_single_batch_execute_parity(2건),
+  test_task11_p_profile_snapshot::
+  test_08_individual_batch_same_snapshot_same_score.
+- "일괄=개별 반복, 일괄 전용 로직 금지" 원칙 위반(실제 경로 분기)
+  가능성.
+- 조사 지침 BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT 발행.
+- 근거: M418 분류 작업(BATCH-KEYWORD-TEST-SUBSET-INSTABILITY-
+  ROOT-CAUSE-CLASSIFY_20260923.md).
+
+### M421. 버그(미착수, 테스트 안전) - TEST-FAKE-DB-CONNECTOR-STALE-REAL-CONNECT
+- M418 A-2 분류 11건: 가짜 DB 연결 장치(monkeypatch)가 옛 함수명을
+  가리켜 무력화 → 테스트가 실제 DB 접속을 시도.
+- 테스트가 실 호스트에 붙을 수 있는 안전 문제라 테스트 정리 중
+  최우선.
+- 근거: M418 분류 작업(BATCH-KEYWORD-TEST-SUBSET-INSTABILITY-
+  ROOT-CAUSE-CLASSIFY_20260923.md).
+
+### M422. 버그(미착수) - TEST-COLLECTION-ERROR-DELETED-CONFIG-REFERENCE
+- test_11def_scenarios.py, test_12k_stress.py가 삭제된
+  설정파일을 읽어 수집 단계에서 전체 실행을 중단시킴(M418
+  들쭉날쭉의 직접 원인).
+- 근거: M418 분류 작업(BATCH-KEYWORD-TEST-SUBSET-INSTABILITY-
+  ROOT-CAUSE-CLASSIFY_20260923.md).
+
+### M423. 버그(미착수) - DIALECT-MAPPING-SQLGLOT-PARSER-POSTGRES-AND-NONE
+- parser/sqlglot_parser.py 매핑 사본이 "postgres"를 oracle로
+  오분류하고, 값이 None이면 예외로 중단.
+- M414 통합 논의와 별개로 실버그.
+- 근거: DUPLICATE-LOGIC-DIALECT-MAPPING-4X-CONSOLIDATE_20260923.md.
+
+### M424. 확인 필요(추정, 미검증) - PROD-SERVER-STDOUT-BLOCK-FULL-HANG-RISK
+- M407에서 드러난 구조(출력이 막히면 서버 전체 정지)가 운영에도
+  해당될 가능성 — 운영 서버를 콘솔 창에서 띄우면 콘솔 출력
+  일시정지 시 같은 현상 가능성이 제기됨(Claude 웹 추정, 실측
+  없음).
+- DEV-E2E-SERVER-LAUNCH-HELPER-AND-PIPE-DEADLOCK-FIX 파트 0
+  결과로 확정할 것.
+- 근거: BATCH-BACKEND-HANG-PIPE-DEADLOCK-HYPOTHESIS-
+  VERIFY_20260923.md.
