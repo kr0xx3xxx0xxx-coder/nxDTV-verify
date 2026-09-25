@@ -12031,6 +12031,12 @@ THIRD-TRY_20260916.md
   실행 결과 일치 커밋 0건(전체 히스토리 2653커밋, 얕은 clone
   아님 확인) — 완료 여부 확인 필요(커밋 미발견). 상태는 변경하지
   않음(추정으로 완료 처리 금지, 36번 규칙).
+- 갱신(2026-09-25 저녁): 완료. 2026-09-23 BATCH-STEP1-CARDS-HIDE-THEN-
+  BUILD-2TO5-CMDBAR(커밋 d59be312·1a6b0f32·799a8d19)로 이미 구현돼
+  있었음. 09-24 "커밋 미발견"은 검색어 오류. 사용자가 "1번 탭에만
+  있다"고 본 것은 운영 8000이 09-23 19:37부터 옛 코드로 떠 있었던
+  탓으로 추정. 근거: BATCH-SINGLE-TAB-LOCK-BUTTON-CMDBAR-PARITY-
+  AUDIT_20260925.md.
 
 ### M409. 아이디어(우선순위 낮음) - BATCH-RUN-LOCK-MECHANISM-UNIFY
 - 일괄검증의 실행 중 화면 잠금이 개별검증(wrapper 마스크 방식,
@@ -12097,6 +12103,10 @@ THIRD-TRY_20260916.md
   대표 3개 중 1개 PASS, 2개는 UI 어서션 타임아웃(원인 미확정 — M428
   참고), 나머지 41개는 컴파일+가드로만 확인. 근거: DEV-E2E-SERVER-
   LAUNCH-HELPER-AND-PIPE-DEADLOCK-FIX_20260924.md
+- 갱신(2026-09-25 저녁): 보완. 공용 도우미 자체의 결함 2건이 신규
+  등록됨(M449 DEV-E2E-SERVER-HELPER-DEFECTS 참고) — worktree에서
+  쓰면 빈 DB를 복사하는 문제, 분리기동된 실제 서버를 끄지 못해
+  누적되는 문제.
 
 ### M414. 아이디어(우선순위 낮음, 대규모) - PROJECT-WIDE-DUPLICATE-LOGIC-REMAINING-31
 - PROJECT-WIDE-DUPLICATE-LOGIC-FULL-AUDIT가 찾은 34건 중 상위 3건
@@ -12175,6 +12185,12 @@ THIRD-TRY_20260916.md
   환경 25 / 실제회귀 0(확인 범위 내) / 판단불가 17. 고정 커밋
   e22ec7f8. 근거: BATCH-KEYWORD-TEST-SUBSET-INSTABILITY-ROOT-
   CAUSE-CLASSIFY_20260923.md(및 첨부 "_전체목록").
+- 갱신(2026-09-25 저녁): 보완. 이번 주 전체 스위트 실행(83
+  failed/8 errors)에서 기존 99건 외 새 이름 3건은 모두 08-06
+  커밋 4f4080ba("처리시간"→"실행시간" 라벨 변경) 후 갱신 안 된
+  테스트(test_grid_helpers, test_query_review_tile_layout 2건)로
+  확인 — 회귀 아님. 캡처가 잘려 32건은 이름 미확인(재실행 시
+  출력 파일 리다이렉트 필요).
 
 ### M419. 완료 기록 - BATCH-STAGE1-QUERY-REVIEW-BUTTON-ALWAYS-VISIBLE-LIKE-TABS
 - 커밋 4ec60d13. 배치 미선택 시 "쿼리 검토" 버튼을 숨기지 않고
@@ -12184,6 +12200,8 @@ THIRD-TRY_20260916.md
   단정했으나 M418 분류에선 같은 테스트가 "판단불가" — 설명
   불일치.
 - 근거: 코드 저장소 커밋 4ec60d13, M418 항목(같은 날 분류).
+- 갱신(2026-09-25 저녁): 완료 확인. 쿼리검토 버튼 항상 표시
+  (4ec60d13) 스크린샷 3장을 Claude(웹)가 직접 확인.
 
 ### M420. 버그(미착수, 우선순위 높음) - BATCH-SINGLE-PARITY-TESTS-7-FAILING
 - 개별↔일괄 동등성 테스트 7건 실패: test_batch_flow2_candidate_
@@ -12218,6 +12236,9 @@ THIRD-TRY_20260916.md
   (execute_parity 2건, test_task11_p...test_08)은 최종본에서
   다뤄지지 않아 원인 재확인 필요(PARITY-TEST-SUITE-AXIS-NOT-
   PRODUCTION, M439 참고).
+- 갱신(2026-09-25 저녁): 보완. 개별↔일괄 비교 테스트가 이런
+  원인 규명 대상이 된 근본 배경은 M439(비교축이 운영 미연결
+  모듈)로 이어짐.
 
 ### M421. 버그(미착수, 테스트 안전) - TEST-FAKE-DB-CONNECTOR-STALE-REAL-CONNECT
 - M418 A-2 분류 11건: 가짜 DB 연결 장치(monkeypatch)가 옛 함수명을
@@ -12265,6 +12286,13 @@ THIRD-TRY_20260916.md
   이후 단계 대상 제외.
 - 구현 지침 BATCH-QUERY-REVIEW-GATE-PROCEED-WITH-ERROR-ROWS 발행.
 - 관련: M415, M408.
+- 갱신(2026-09-25 저녁): 결정 변경. B안(오류 행 두고 진행) 구현
+  (7779694b) 후 사용자 재결정으로 폐기 — "오류 1건이라도 있으면
+  다음 잠금"(엄격 게이트)로 복귀(3906cac6 revert)하고 오류 유형
+  표시(중복/테이블 오류/컬럼 오류/문법 오류/기타) 추가(76787962,
+  분류는 서버 한 곳). 사유: 정상 쿼리 제공 책임은 이관팀. 근거:
+  BATCH-QUERY-REVIEW-GATE-STRICT-REVERT-AND-ERROR-TYPE-
+  LABEL_20260925.md.
 
 ### M426. 버그(미착수) - DEV-E2E-ISOLATED-SERVER-SHARES-PROD-LOG-FILE
 - 격리 테스트 서버도 web_server.py 분리기동 구조상
@@ -12358,6 +12386,10 @@ THIRD-TRY_20260916.md
   버리고 batch_row_status_mapper가 재판정
   (BATCH-VERDICT-RECOMPUTED-NOT-REUSED, M437 참고). 최종
   build_result_verdict_view는 공유.
+- 갱신(2026-09-25 저녁): 보완. 원클릭 표준실행
+  (single_validation_run_facade)은 화면에서 숨겨져 있으나 일괄
+  행 실행 경로가 이 facade를 공유. 원클릭 판정 결함은 b69734d3로
+  수정(M442 참고). full_run 모드는 저장 강제 OFF.
 
 ### M434. 잔여 - BATCH-SINGLE-SHARE-AUDIT-ORACLE-JOIN-UNMEASURED
 - 공유 실태 감사 파트C 실측은 PostgreSQL 단일테이블 1건뿐(Oracle·
@@ -12386,6 +12418,10 @@ THIRD-TRY_20260916.md
   TEST-FIX 발행, 2차(저장 경로 facade 경유 전환)는 별도.
 - 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md,
   BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_DETAIL_20260923.md.
+- 갱신(2026-09-25 저녁): 보완. 1차(감시 테스트 교정) 완료
+  (1b461e35, xfail strict). 우회 5곳 중 batch_route.py:2642도
+  UI 호출자 0건 가능성(미확정). 2차(저장 경로 facade 경유 전환)는
+  일괄 반복기 작업(M447)에 포함 예정.
 
 ### M436. 버그(미착수) - BATCH-COUNT-MISMATCH-POLICY-BYPASS
 - 일괄 COUNT가 개별 정책함수
@@ -12435,3 +12471,118 @@ THIRD-TRY_20260916.md
   거부로 삭제되지 못하고 잔존.
 - 사용자 직접 삭제 대기.
 - 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_DETAIL_20260923.md.
+- 갱신(2026-09-25 저녁): 종결. 비밀번호 사본 포함 임시 폴더 전부
+  삭제. 원인은 꺼지지 않은 격리 서버 15개가 폴더를 잠그고 있었던
+  것 — 서버 종료 후 21개 일괄 삭제 성공. 로컬 백업
+  X:\xDataNexPro\_backup\ 의 프리셋 사본은 의도적 보관. 근거:
+  STALE-TEST-SERVERS-KILL-AND-TEMP-CLEANUP_20260925.md.
+
+### M442. 완료 - ONECLICK-VERDICT-PASSED-FIX-AND-COMBO-GB
+- 원클릭 표준실행이 GROUP BY 2개 이상이면 컬럼별 분할 집계
+  (_run_multi_gb_sets)하고 result_view 누락으로 판정이 항상
+  PASSED였던 치명 결함 수정(b69734d3). 수동 4단계와 같은
+  캐스케이드 조합 집계(build_groupby_execution_plan, 상한
+  1,000그룹, 3→2→1축, 1축도 초과 시 GROUP BY 포기) 사용.
+- 실 Oracle 300그룹에서 수동=원클릭 완전 일치 확인. 캐스케이드
+  축소 케이스는 실 픽스처가 없어 대체 확인만.
+- 근거: ONECLICK-VERDICT-PASSED-VS-SCREEN-MISMATCH-ROOT-
+  CAUSE_20260925.md, ONECLICK-COMBO-GB-SAME-AS-MANUAL-AND-
+  VERDICT-FIX_20260925.md.
+
+### M443. 완료 + 설계결정 - STATS-VALIDATION-GROUP-AGG-ONLY
+- 결정: 통계검증은 그룹 조합별 건수·합계 비교만. 행 단위 비교
+  (불일치 그룹 클릭, 전수검증)는 "이관 쿼리에 있는 컬럼만"
+  (관리컬럼 포함) 대상 — 쿼리에 있는 관리컬럼 값이 다르면 진짜
+  불일치이므로 제외 금지.
+- 구현: 통계검증에서 레코드셋 해시 병합 제거(993cba5b). 실
+  Oracle 불일치 300 → 5(정답 5와 일치), 원클릭 12~17초 → 약 1초.
+  5단계에 범위 안내 문구 추가. 행 단위 비교 경로는 이미 쿼리
+  컬럼만 사용 확인.
+- 근거: STATS-VALIDATION-REMOVE-RECORD-HASH_20260925.md.
+
+### M444. 결정(취소 기록) - RECORD-HASH-EXCLUDE-MANAGEMENT-COLUMNS-CANCELLED
+- 레코드 해시에서 관리컬럼을 빼는 지침은 M443의 원칙에 어긋나
+  취소. 코드 흔적 없음 확인.
+- 근거: RECORD-HASH-EXCLUDE-MGMT-CANCEL-CLEANUP_20260925.md.
+
+### M445. 완료 - STAGE-NAV-BUTTON-RULES-R1-R8 (개별검증)
+- 확정 규칙: R1 실행 중 전체 잠금(중단만) / R2 유효 완료 정의 /
+  R3 k단계 변경·재실행 시 k+1 이후 무효 / R4 유효 완료 단계 +
+  다음 1단계까지만 이동 / R5 이전 탭 복귀·수정 허용 / R6
+  다음▶=현재 유효 완료 / R7 실행 버튼=앞 단계 유효 완료 / R8
+  하단 ◀▶=상단 탭과 동일 판정. 1단계 SQL은 의미 있는 변경만
+  무효화(공백·대소문자·주석 무시, 비우면 실행 버튼 비활성, 원복
+  시 무효 해제). 공용 순수 함수 MvStageGate.computeNavRules
+  (mode 필수). b0eb123a. 실 Oracle E2E 23/23. 부수 수정: R4
+  탐색 버그, SQL 주석 오탐. 일괄 적용은 제외(M447 반복기로
+  재구축 예정). 문서 docs/STAGE-NAV-RULES.md.
+- 근거: STAGE-NAV-BUTTON-RULES-R1-R8-UNIFY_20260925.md(+AMEND1).
+
+### M446. 보류(사용자 결정) - STAGE34-EXEC-BUTTON-TO-SHARED-RULE
+- 3·4단계 실행 버튼 판정은 공용 함수로 옮기지 않음(900줄
+  커맨드바 함수 내 분산, 회귀 위험). 현재 화면 동작은 규칙과
+  일치. M447(일괄 반복기) 작업 때 함께 이전.
+
+### M447. 설계 방향(진행 중) - BATCH-AS-SINGLE-REPEATER
+- 원칙: 일괄에 허용되는 코드는 ①입력 ②반복 ③모아보기뿐, 나머지는
+  개별 함수 호출. 화면은 목록 + 전체 실행 + 행 클릭 시 개별 5탭
+  재사용. 1단계 완료(6df99724): 가드 테스트 + CLAUDE.md 절.
+  확인된 과제: 원클릭은 행 실행기로 조건부 사용 가능(저장 경로
+  필요), 행→개별 화면 외부 진입점 없음(신규 필요), 가드 테스트가
+  알려진 위반 3건(batch_count_only_service M436,
+  stats_validation_plan_service M438, column_candidate_gen_
+  service M430)을 놓침 + 이름 바꾼 재구현은 탐지 못 함.
+- 근거: BATCH-AS-SINGLE-REPEATER-FOUNDATION_20260925.md.
+
+### M448. 정리 필요 - DEAD-CODE-AFTER-ONECLICK-AND-RECORD-HASH
+- 쓰이지 않게 된 코드: single_validation_run_facade의
+  _run_multi_gb_sets/_run_one_gb_set/_run_sets_parallel/
+  _stats_set_parallelism 계열(+ 이를 직접 검사하는 단위테스트),
+  req.record_hash_verify를 채우는 코드(_build_execute_request,
+  execute_route._autowire_record_hash_verify),
+  record_hash_verify_core·group_recordset_hash*(다른 사용처
+  확인 후). 삭제는 사용자 확인 후.
+
+### M449. 버그(미착수) - DEV-E2E-SERVER-HELPER-DEFECTS
+- scripts/dev_e2e/_server_launch_helper.py: ① worktree에서
+  쓰면 빈 DB를 복사 ② 분리기동된 실제 서버를 끄지 못해 서버가
+  누적(09-18부터 15개 잔존 확인)되고 임시 폴더 잠금의 원인이
+  됨. M426·M427과 연관.
+
+### M450. 버그(미착수) - BATCH-STAGE1-SUMMARY-DISPLAY-CONSISTENCY
+- 일괄 1단계: "검증대상 요약"(진행 가능 N·오류 0)이 쿼리 검토
+  결과와 불일치, "파싱 OK"인데 문법 오류 표시, 요약 "DB검증OK
+  0건"인데 표에 PASSED 행, 검토 전 2번 탭 "진행 중" 표시. M447
+  일괄 반복기 재구축 시 함께 정리.
+
+### M451. 확인 필요 - BATCH-IN-FILE-DUPLICATE-ROWS-REGISTERED-AS-VALID
+- 파일 안 중복 행이 업로드 시 정상 대상으로 등록됨. 엄격 게이트로
+  그 배치 흐름은 막히나, 같은 그룹 다른 배치의 COUNT 등 게이트
+  밖 경로로 섞이는지 미확인. 근거: BATCH-QUERY-REVIEW-GATE-
+  PROCEED-WITH-ERROR-ROWS_20260925.md.
+
+### M452. 확인 필요 - BATCH-TAB5-ENTRY-WITHOUT-STAGE34
+- 일괄 5번 탭이 3·4단계 없이 COUNT만으로 진입됨. M447 일괄
+  반복기에서 R4 적용 시 해소 예정.
+
+### M453. 정책 미정 - TIMESTAMP-PRECISION-TRUNCATION-TOLERANCE
+- 픽스처의 CREATED_TS/UPDATED_TS 차이는 값 자체가 아니라 소수
+  초 절삭(.748 → .000, 목적 컬럼 정밀도 낮음). 원칙상 불일치가
+  맞음(전수검증도 그렇게 판정). 타입 차이로 인한 정밀도 절삭
+  허용 여부는 추후 결정.
+
+### M454. 운영 메모 - PYTEST-EXIT-CODE-MASKED-BY-PIPE
+- 파이프 경유 실행에서 종료코드 0인데 실제 83 failed. 이후
+  지침은 pytest 마지막 요약 줄로 판정, 출력은 파일로 리다이렉트.
+
+### M455. 운영 메모 - COMMIT-INCLUDED-OTHER-SESSION-UNTRACKED-FILE
+- STAGE-NAV 커밋 b0eb123a가 다른 세션의 미커밋 파일
+  tests/test_stage4_tab_nav_stale_discard_fix.py(168줄)를 함께
+  커밋(26번 위반). 출처 미상.
+
+### M456. 운영 메모 - INTERNAL-DB-SIZE-AND-STALE-WORKTREES
+- exact_diff_runs.db 4.3GB(백업 90초) — 전수검증 이력 보존 정책
+  필요. batch_execution.db 0바이트(미사용 추정). 오래된
+  worktree 등록 nxDTV-baseline-check/-check2 잔존. 2026-09-25
+  백업: 태그 backup-20260925-after-r1r8(b0eb123a) + 로컬
+  X:\xDataNexPro\_backup\20260925-after-r1r8\(DB 8개).
