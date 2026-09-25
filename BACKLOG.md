@@ -12206,6 +12206,18 @@ THIRD-TRY_20260916.md
   모듈 validation_execute_core.compare_stats_rows가 tgt_only 키를
   여전히 반환 — 라이브 execute_stats_validation은 2분류). 근거:
   BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
+- 정정(2026-09-25, 감사 최종본 기준): 위 갱신(2026-09-25)줄은
+  범위를 벗어난 하위 fork가 먼저 저장한 중간본 근거였음(M440
+  참고). 최종본(BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_DETAIL_
+  20260923.md) 기준 4건(flow2_core_parity,
+  profile_candidate_parity, single_batch_plan_parity,
+  numeric_tolerance_policy::test_13) 모두 테스트 결함(실제 로직
+  분기 0건)으로 확정하되, 이 중 3건은 운영 미연결 모듈
+  (validation_job_core 등, M431 참고)을 비교축으로 써서 운영
+  parity에 대해 아무것도 증명하지 못함. 나머지 3건
+  (execute_parity 2건, test_task11_p...test_08)은 최종본에서
+  다뤄지지 않아 원인 재확인 필요(PARITY-TEST-SUITE-AXIS-NOT-
+  PRODUCTION, M439 참고).
 
 ### M421. 버그(미착수, 테스트 안전) - TEST-FAKE-DB-CONNECTOR-STALE-REAL-CONNECT
 - M418 A-2 분류 11건: 가짜 DB 연결 장치(monkeypatch)가 옛 함수명을
@@ -12286,6 +12298,13 @@ THIRD-TRY_20260916.md
 - execute_set_route를 build_stats_sql_pair 기반으로 이전 검토.
   과거 스키마 qualify 버그가 SqlGenerator 쪽에 있었던 이력 있음.
 - 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
+- 정정(2026-09-25, 감사 최종본 기준): SqlGenerator 기반
+  build_stats_sql(/execute/set "검증세트")은 개별↔일괄 사본이
+  아니라 "개별 탭 내부"에서 주버튼(runGenerate→
+  build_stats_sql_pair)과 보조버튼(runValidationSet→
+  SqlGenerator)이 서로 다른 생성기를 쓰는 개별 내부
+  비일관성. 일괄 쪽 SqlGenerator 사용은 기본 비활성
+  batch_runner(M432)뿐.
 
 ### M430. 리팩토링(우선순위 2) - CANDIDATE-ORCHESTRATION-FLOW2-DUAL
 - 후보추천 오케스트레이션이
@@ -12295,12 +12314,28 @@ THIRD-TRY_20260916.md
 - Flow2가 현재 일괄 화면의 실사용 경로인지 먼저 확인 필요(감사에서
   미확정). nxTDA 이관 가능 영역이므로 대규모 작업 전 사용자 확인.
 - 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
+- 정정(2026-09-25, 감사 최종본 기준):
+  column_candidate_gen_service.py(Flow2)는 일괄 화면(/api/
+  batch-groups/{id}/column-candidates/generate)의 실사용
+  라이브 경로로 확인. 핵심
+  candidate_engine.build_column_candidates는 공유하나
+  column_profiles 전달이 개별(미전달)/일괄 Flow2(명시 전달,
+  자체 주석 M351에 CV 안전장치 무력화 경고)/batch_runner
+  (미전달)로 달라 같은 SQL도 점수가 달라질 수 있음.
 
 ### M431. 결정 필요(우선순위 3) - SHADOW-EXECUTE-CORE-KEEP-OR-REMOVE
 - validation_execute_core.py/validation_job_core.py shadow 계열
   (flag OFF, 비라이브) 존치/폐기 결정. 이미 정책 드리프트(tgt_only
   잔존) 발생.
 - 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md(M420).
+- 정정(2026-09-25, 감사 최종본 기준): 대상은
+  services/validation_job_core.py + services/validation_run/*
+  (orchestrator·adapter·shadow·routing_flags 계열) +
+  services/validation_execute_core.py. routes/·web_server.py
+  어디서도 import 0건(운영 미연결)인데 20개 이상 parity
+  테스트가 이를 개별↔일괄 비교축으로 사용 중 — 존치/폐기
+  결정이 parity 테스트 재작성(PARITY-TEST-SUITE-AXIS-NOT-
+  PRODUCTION, M439)과 연동.
 
 ### M432. 결정 필요(우선순위 4) - LEGACY-BATCH-RUNNER-REMOVE
 - services/batch_runner.py(일괄 전용 전체 재구현,
@@ -12316,9 +12351,87 @@ THIRD-TRY_20260916.md
   직접 함수호출 방식이라 facade 0줄).
 - 개별이 안 쓰면 facade는 사실상 일괄 전용 로직 계층.
 - 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
+- 정정(2026-09-25, 감사 최종본 기준): facade
+  (single_validation_run_facade)는 개별 "원클릭 표준실행"과
+  일괄 공식경로가 공유(실행 지점 docstring 기준). 다만 일괄은
+  facade가 계산한 verdict를 BatchRowEnvelope에 담지 않아
+  버리고 batch_row_status_mapper가 재판정
+  (BATCH-VERDICT-RECOMPUTED-NOT-REUSED, M437 참고). 최종
+  build_result_verdict_view는 공유.
 
 ### M434. 잔여 - BATCH-SINGLE-SHARE-AUDIT-ORACLE-JOIN-UNMEASURED
 - 공유 실태 감사 파트C 실측은 PostgreSQL 단일테이블 1건뿐(Oracle·
   JOIN 미시도, Playwright 미사용). JOIN은 과거 스키마 qualify
   버그 이력이 있는 영역.
 - 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md
+- 정정(2026-09-25, 감사 최종본 기준): 파트C 실측에서 일괄은
+  COUNT-ONLY 비동기 job 완료를 확인하지 못해 후보·SQL·실행
+  단계에 도달하지 못함(coverage상 해당 core 파일 일괄 0줄).
+  즉 2~6단계의 "일괄도 같은 함수 사용" 결론은 정적 추적
+  근거뿐이고 런타임 미확인. Oracle·JOIN 미측정 상태는 그대로
+  유효.
+
+### M435. 버그(미착수, 최우선, 원칙 위반) - BATCH-RESULT-SAVE-BYPASSES-PERSIST-FACADE
+- 일괄 결과 저장 라이브 경로가 공용 저장 facade
+  (result_persistence_facade.persist_batch_row_results 등)를
+  거치지 않고 batch_wrapper_result_store.save_wrapper_results를
+  직접 호출: batch_route.py:2642,
+  column_candidate_gen_route.py:435·695,
+  batch/count_only_async_job.py:132,
+  batch/wrapper_async_job.py:155. facade 경유 경로
+  (batch_route.py:2421 run_uploaded_rows_via_wrapper)는 UI
+  호출자 0. 공유돼야 할 idempotency claim·공통계약 임베드·row별
+  저장증거 검증이 라이브에서 미공유.
+- 1차(감시 테스트 교정) 지침 RESULT-PERSIST-FACADE-BYPASS-GUARD-
+  TEST-FIX 발행, 2차(저장 경로 facade 경유 전환)는 별도.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_20260923.md,
+  BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_DETAIL_20260923.md.
+
+### M436. 버그(미착수) - BATCH-COUNT-MISMATCH-POLICY-BYPASS
+- 일괄 COUNT가 개별 정책함수
+  decide_next_step_after_count(validation_policy_service.py:947)
+  를 호출하지 않고 batch_count_only_service.py:195-214에서
+  자체 OK/WARNING/ERROR 분기 — 정책 변경 시 일괄만 누락.
+  is_matched 비교식도 3곳 재구현.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_DETAIL_20260923.md.
+
+### M437. 버그(미착수) - BATCH-VERDICT-RECOMPUTED-NOT-REUSED
+- 일괄 정식경로(batch_single_core_wrapper)가 개별 facade를
+  호출하지만 BatchRowEnvelope에 verdict 필드가 없어 facade
+  판정이 버려지고, batch_row_status_mapper.
+  map_row_display_status(79-126행)가 1차 분류를 독립 구현해
+  재판정. 최종 build_result_verdict_view는 공유. M433 참고.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_DETAIL_20260923.md.
+
+### M438. 리팩토링(미착수) - STATS-PLAN-TYPE-CLASSIFY-DUPLICATE
+- plan_type 분류 완전중복: stats_sql_builder.py:349
+  _plan_type_of(개별) vs
+  stats_validation_plan_service.py:524 _compute_plan_type(일괄),
+  둘 다 라이브. 일괄 전용 죽은 사본
+  stats_validation_plan_service.py:357 _wrap_sum(호출자 0).
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_DETAIL_20260923.md.
+
+### M439. 버그(미착수, 테스트 신뢰도) - PARITY-TEST-SUITE-AXIS-NOT-PRODUCTION
+- 개별↔일괄 동등성 테스트 20개 이상이 운영 미연결 모듈(M431
+  대상)을 비교축으로 사용 → 통과해도 운영 parity 보장 못 함.
+  운영 라우트(개별 /analyze 경로 vs 일괄 run-wrapper 경로)
+  기준으로 재작성 필요. M431 결정과 연동.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_DETAIL_20260923.md.
+
+### M440. 운영 메모 - SUBAGENT-FORK-SCOPE-OVERRUN-INCIDENT-20260925
+- TRUTH-AUDIT 중 5단계 담당 fork가 범위를 벗어나 전체 보고서를
+  먼저 작성·저장하고 원본 격리 worktree를 임의 삭제. 이
+  중간본이 7단계 위반을 놓쳐 Claude(웹) 요약과
+  BACKLOG(ae796d7) 일부(M420 갱신줄, M429~M434)가 오염됨(본
+  지침에서 정정).
+- 이후 지침은 fork 위임 금지 또는 결과 전량 재검증.
+- 근거: BACKLOG-CORRECT-TRUTH-AUDIT-FINAL-20260925 지침,
+  BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_DETAIL_20260923.md.
+
+### M441. 정리 필요(보안) - AUDIT-TEMP-DB-COPIES-WITH-PASSWORDS
+- C:\Users\Public\Documents\ESTsoft\CreatorTemp\mv_partc_*
+  (7개, DB 프리셋 사본 — 접속 비밀번호 포함),
+  C:\Users\nextobe_lyk\AppData\Local\Temp\mv_audit\ 가 권한
+  거부로 삭제되지 못하고 잔존.
+- 사용자 직접 삭제 대기.
+- 근거: BATCH-SINGLE-LOGIC-SHARE-TRUTH-AUDIT_DETAIL_20260923.md.
