@@ -12037,6 +12037,8 @@ THIRD-TRY_20260916.md
   있다"고 본 것은 운영 8000이 09-23 19:37부터 옛 코드로 떠 있었던
   탓으로 추정. 근거: BATCH-SINGLE-TAB-LOCK-BUTTON-CMDBAR-PARITY-
   AUDIT_20260925.md.
+- 갱신(2026-09-27): 일괄 2~5탭 하단바 "◀ 이전"까지 추가 완료
+  (1888fe0f), 탭 라벨 대기/진행/완료 3단어 통일(f424c186).
 
 ### M409. 아이디어(우선순위 낮음) - BATCH-RUN-LOCK-MECHANISM-UNIFY
 - 일괄검증의 실행 중 화면 잠금이 개별검증(wrapper 마스크 방식,
@@ -12049,6 +12051,10 @@ THIRD-TRY_20260916.md
   예외" 같은 세분화 규칙을 wrapper 경계 밖으로 정확히 빼내는 별도
   설계가 필요.
 - 근거: 같은 보고서 파트C "보류(구조적 위험 분석)" 절.
+- 갱신(2026-09-27): 완료. 일괄 본문 잠금을 개별과 같은 공용 마스크
+  (#mvBatchBodyMask, body.mv-run-locked)로 통일(e77005fa). 요소별
+  [data-run-lock] 방식 대체. 실측 중 발견한 잠금 토글 경합(개별
+  COUNT 실행 중 본문 미잠금) 함께 수정.
 
 ### M410. 아이디어(우선순위 낮음) - BATCH-CURRENT-BADGE-SUPERSEDED-BY-HINT
 - "이전본" 배지가 *왜* 밀렸는지는 알려주지만 *누구에게* 밀렸는지는
@@ -12293,6 +12299,11 @@ THIRD-TRY_20260916.md
   분류는 서버 한 곳). 사유: 정상 쿼리 제공 책임은 이관팀. 근거:
   BATCH-QUERY-REVIEW-GATE-STRICT-REVERT-AND-ERROR-TYPE-
   LABEL_20260925.md.
+- 갱신(2026-09-27): 일괄 2단계 흐름 재정리 — "확인" 버튼·3단계 자동
+  실행 제거, 체크박스 "COUNT 불일치 포함 진행"(기본 해제=일치만),
+  진행 대상 ≥1건일 때만 "다음 ▶" 활성, 기존 포함범위 3버튼·3단계
+  드롭다운 제거(체크박스 단일 출처), 늦게 도착한 옛 조회 응답 폐기
+  (e77005fa, a443d643).
 
 ### M426. 버그(미착수) - DEV-E2E-ISOLATED-SERVER-SHARES-PROD-LOG-FILE
 - 격리 테스트 서버도 web_server.py 분리기동 구조상
@@ -12350,6 +12361,12 @@ THIRD-TRY_20260916.md
   column_profiles 전달이 개별(미전달)/일괄 Flow2(명시 전달,
   자체 주석 M351에 CV 안전장치 무력화 경고)/batch_runner
   (미전달)로 달라 같은 SQL도 점수가 달라질 수 있음.
+- 갱신(2026-09-27): 일괄 3단계 profile 수집이 개별과 다른 사본
+  (profile_recollect_service._collect_distinct_counts — Oracle/
+  MSSQL 고유값 미수집)이었음 → 개별 column_profile_service 함수
+  호출로 통합, 사본 4개 함수 삭제(5f5be88a). 후보 결과가 개별과
+  100% 일치 확인(MV_GB01UI: CAT_CD/AMT, MV_ORA_TEST: ORDER_YM·
+  REGION_CD·CHANNEL_CD/AMT·QTY).
 
 ### M431. 결정 필요(우선순위 3) - SHADOW-EXECUTE-CORE-KEEP-OR-REMOVE
 - validation_execute_core.py/validation_job_core.py shadow 계열
@@ -12554,6 +12571,10 @@ THIRD-TRY_20260916.md
   결과와 불일치, "파싱 OK"인데 문법 오류 표시, 요약 "DB검증OK
   0건"인데 표에 PASSED 행, 검토 전 2번 탭 "진행 중" 표시. M447
   일괄 반복기 재구축 시 함께 정리.
+- 갱신(2026-09-27): 부분 해소. 1번 탭 DB검증 숫자(이력·요약·표)
+  동일 저장값으로 통일, 1·2번 탭 표 배지 제거·글자만, 버튼은 글자
+  링크(75ca2717, dcc2e0f9). 파싱 OK+문법 오류 표시 등 잔여는
+  미확인.
 
 ### M451. 확인 필요 - BATCH-IN-FILE-DUPLICATE-ROWS-REGISTERED-AS-VALID
 - 파일 안 중복 행이 업로드 시 정상 대상으로 등록됨. 엄격 게이트로
@@ -12564,6 +12585,10 @@ THIRD-TRY_20260916.md
 ### M452. 확인 필요 - BATCH-TAB5-ENTRY-WITHOUT-STAGE34
 - 일괄 5번 탭이 3·4단계 없이 COUNT만으로 진입됨. M447 일괄
   반복기에서 R4 적용 시 해소 예정.
+- 갱신(2026-09-27): 완료. 일괄 탭 판정을 R1~R8 공용 함수
+  (computeNavRules)로 전환해 5번 탭 조기 진입 해소(eac255ab).
+  3~5단계 "이번 실행만 유효" 적용으로 과거 결과를 완료로 인정하지
+  않음(7369a409).
 
 ### M453. 정책 미정 - TIMESTAMP-PRECISION-TRUNCATION-TOLERANCE
 - 픽스처의 CREATED_TS/UPDATED_TS 차이는 값 자체가 아니라 소수
@@ -12586,3 +12611,105 @@ THIRD-TRY_20260916.md
   worktree 등록 nxDTV-baseline-check/-check2 잔존. 2026-09-25
   백업: 태그 backup-20260925-after-r1r8(b0eb123a) + 로컬
   X:\xDataNexPro\_backup\20260925-after-r1r8\(DB 8개).
+
+### M457. 완료 - BATCH-STAGE2-COUNT-FRESH-RULE
+- 결정: 일괄은 과거 기록이 있더라도 COUNT를 항상 새로 실행·저장.
+  과거 COUNT는 "이전 실행(시각) 참고용"으로만 표시, 이번 실행
+  전에는 2단계 미완료. 3~5단계도 앞 단계 재실행 시 대기(R3), 이번
+  세션 실행분만 완료 인정. 3·4단계 결과 재사용은 개별의 "쿼리·
+  COUNT 동일 시 최근 통계 결과 재사용" 함수를 그대로 사용(이미
+  공유 중 확인). 818664ad, 7369a409.
+- 근거: BATCH-COUNT-FRESH-AND-STAGE3-CANDIDATES-FIX,
+  BATCH-STAGE3-HEADER-ESTIMATE-AND-STAGE45-VALIDITY-FIX.
+
+### M458. 완료 - BATCH-STAGE2-UI-CLEANUP
+- 2번 탭: 목적/원본 COUNT 순서 교체, "일치여부"(일치/불일치/오류/
+  빈칸) 칸 추가, "검증대상 요약" 칩 줄·안내문·"⚡변경분 COUNT 실행"
+  버튼·"검증대상 상세 접기/COUNT 불일치 상세" 줄 제거, "동일 N건
+  기존 결과 유지" 거짓 문구 제거, 주황 칸은 2번 탭에만(c0ef88af,
+  818664ad).
+
+### M459. 완료 - BATCH-STAGE3-CANDIDATE-GRID
+- 3번 탭 본문을 표(목적/원본/그룹 후보/집계 후보/후보 상태/상세)만
+  남기고 요약 타일·진입 카드·profile 버튼·드롭다운 제거, 실행은
+  하단바만. 전역설정 그룹수·집계수를 개별과 같은 함수로 참조, 표
+  헤더 "최대 N개" 표시, 개별 3단계 "최대 3개" 고정 문구 수정. 예상
+  그룹 수를 min(고유값 곱, 실제 COUNT)으로 상한, "0/0 처리" 표시
+  버그 수정. 2e1d37cc, a443d643, fc64240b, 5f5be88a, 7369a409.
+
+### M460. 완료 - ORACLE-GROUP-SQLHASH-DBMS
+- Oracle 그룹 3~5단계 "재검증 필요" 미해제 → COUNT/후보/재사용
+  해시를 항상 postgresql 기준으로 계산하던 3곳 수정(a8c8918a 동기
+  경로, 92600200 병렬 러너·재사용 조회). 실 Oracle에서 저장 해시=
+  oracle 기준값 일치 확인.
+
+### M461. 버그(미착수) - LEGACY-COLUMN-SOURCE-COUNT-NEVER-UPDATED
+- DTV_policy_target_table_config.source_count /
+  count_precheck_status는 실제로 한 번도 갱신되지 않는 옛 컬럼
+  (BAT_008 전 행 NULL/NOT_RUN, 89행 전부 NULL). 실제 COUNT는
+  DTV_batch_wrapper_result(facade_count)에 저장. 이 옛 컬럼을
+  읽는 다른 코드가 조용히 틀리고 있을 수 있어 전수 확인 필요.
+- 근거: BATCH-STAGE3-HEADER-ESTIMATE-AND-STAGE45-VALIDITY-FIX.
+
+### M462. 버그(미착수) - BATCH-TGT-CONNECTION-ID-NOT-SAVED-ON-UPLOAD
+- 업로드 시 그룹의 원본 연결정보만 저장하고 목적 연결정보
+  (tgt_connection_id)를 저장하지 않던 기존 버그 — 7186c296에서
+  요청 시점 보완 경로로 우회. 업로드 저장 자체 수정 여부 확인
+  필요.
+
+### M463. 확인 필요 - PROD-8000-UNEXPLAINED-TERMINATION
+- 2026-09-26 12:49 Claude Code 경유 재기동 직후 운영 8000이 로그
+  없이 종료(1회, 재현 안 됨). 이후 운영 8000 재기동은 사용자가
+  PowerShell에서 직접 수행하는 방식으로 전환. 재발 시 종료 시각·
+  직전 작업 기록.
+
+### M464. 결정·계획 - INTERNAL-DB-NAMING-CONVENTION
+- 조사 완료(INTERNAL-DB-MOIS-STANDARD-NAMING-AUDIT_20260927.md/
+  .xlsx): 8개 DB, 테이블 95(사용 72/미사용 18/판단불가 2), 컬럼
+  1,458, MOIS 표준 적재본 근거 제안 확신도 높음 18%/중간 12%/낮음
+  53%/신규 16%, 삭제 후보 153건.
+- 사용자 결정(2026-09-27): 행정안전부 공통표준은 nxDTV 내부 DB에
+  적용하지 않는다. 사유: 내부 DB는 공공 업무 데이터가 아니라 도구
+  자체 작업 기록이며 공유·개방 대상이 아니고, 기술 용어 비중이
+  높아 표준 적합도가 낮으며(높음 18%), 축약 표준명(MDFCN_DT 등)은
+  코드 가독성을 해친다. 대신 xDataNexPro 제품군 공통 "내부 명명
+  규칙"(영문 소문자 snake_case, 축약하지 않은 단어)을 정해 따른다
+  (nxTDA와 공유하는 이름 포함). 고객에게 보이는 화면·보고서·엑셀의
+  한글 용어는 공공 표준 한글 용어(생성일시·수정일시 등)를 사용한다.
+- 관리컬럼은 제각각인 이름(created_at 47곳, created_dt 7,
+  updated_at 33, updated_dt 4, registered_at 1 등)을 하나로 통일:
+  created_at — 모든 테이블 / updated_at — 내용이 수정되는 테이블
+  (프로젝트·DB 프로필·그룹 설정 등, 한 번 쓰고 안 바뀌는 기록·
+  이력·로그 테이블은 생략) / deleted_at — 사용자가 삭제·제외할 수
+  있는 테이블(소프트삭제 표시 겸용: NULL=유효, 값 있음=삭제됨,
+  별도 is_deleted/YN 컬럼 두지 않음) / created_by·updated_by·
+  deleted_by — 보류(현재 로그인 계정 1개라 값이 항상 같음, 다중
+  사용자 도입 시 추가. 기존 created_by 3곳·deleted_by 1곳은
+  이름만 규칙에 맞춰 유지).
+- 시각 컬럼 이름은 "과거분사 + _at"으로 통일(예: ran_at→
+  executed_at, created_dt→created_at, exec_started_at→
+  execution_started_at). 명사+_at(heartbeat_at 등)도 같은 규칙으로
+  정리 검토.
+- 소프트삭제 처리 방식이 테이블마다 다른지(deleted_at 3곳 외에
+  status/excluded/active 류 컬럼으로 표시하는 곳) 조사 후
+  deleted_at으로 통일.
+- 실행 이력·로그처럼 쌓이는 데이터는 보관 기간 정책(N개월 경과분
+  실제 삭제 등)을 별도로 정한다(exact_diff_runs.db 4.3GB, 기존
+  purged_at 컬럼 존재). 설정성 데이터(프로젝트·DB 프로필 등)는
+  소프트삭제로 기록 보존.
+- 진행 순서: ① 삭제 후보 정리(행 수 0 테이블·완전 미사용 컬럼부터,
+  사용자 확인 후) + "##" 접두 테이블 9개 확정/삭제 + 동명 중복
+  테이블 2건 정리 → ② 관리컬럼 통일(created_at/updated_at/
+  deleted_at, 소프트삭제 방식 통일 포함) → ③ 시각 컬럼 "_at" 규칙
+  정리 → ④ 이력 보관 기간 정책. 시점은 일괄검증 안정 후. 테이블명은
+  현행 DTV_ 유지.
+- 참고: "##" 접두 테이블은 2026-09-04 SQLite 70개 테이블 재정리 때
+  "모호" 분류 표시로 붙인 것(조사 보고서의 "SQL Server식 실험
+  흔적" 추정은 부정확).
+
+### M465. 운영 메모 - VERIFY-WORKFLOW-NOTES-20260926
+- Drive 스크린샷은 Claude(웹)가 read_file_content로 글자를 읽어
+  확인 가능(이미지 모양·색은 불가). 격리 환경 Oracle 연결은 "DB
+  프로필/검증 경로" 화면의 "접속" 버튼 실제 클릭으로 해결. 지침
+  검증에서 상태 주입(page.evaluate) 금지 원칙 재확인(주입 검증이
+  실제 버그를 놓친 사례).
