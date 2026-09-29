@@ -12367,6 +12367,10 @@ THIRD-TRY_20260916.md
   호출로 통합, 사본 4개 함수 삭제(5f5be88a). 후보 결과가 개별과
   100% 일치 확인(MV_GB01UI: CAT_CD/AMT, MV_ORA_TEST: ORDER_YM·
   REGION_CD·CHANNEL_CD/AMT·QTY).
+- 갱신(2026-09-29): 3단계 선정 입력 재확정
+  (finalize_recommendation_postcount)을 4단계도 호출해 3단계
+  선택↔4단계 안전 게이트 모순 해소(4e01c071). profile 재수집
+  조건에 "고유값 없는 옛 snapshot" 포함(6e9bb3d1).
 
 ### M431. 결정 필요(우선순위 3) - SHADOW-EXECUTE-CORE-KEEP-OR-REMOVE
 - validation_execute_core.py/validation_job_core.py shadow 계열
@@ -12439,6 +12443,10 @@ THIRD-TRY_20260916.md
   (1b461e35, xfail strict). 우회 5곳 중 batch_route.py:2642도
   UI 호출자 0건 가능성(미확정). 2차(저장 경로 facade 경유 전환)는
   일괄 반복기 작업(M447)에 포함 예정.
+- 갱신(2026-09-29): 4단계 실행을 공식 경로
+  runWrapperValidation으로 전환, 레거시 stats-validation-
+  plans/batchExecuteStatsPlans는 화면에서 분리(3ca6b496).
+  레거시 코드 본문은 보존(삭제 후보).
 
 ### M436. 버그(미착수) - BATCH-COUNT-MISMATCH-POLICY-BYPASS
 - 일괄 COUNT가 개별 정책함수
@@ -12550,6 +12558,13 @@ THIRD-TRY_20260916.md
   stats_validation_plan_service M438, column_candidate_gen_
   service M430)을 놓침 + 이름 바꾼 재구현은 탐지 못 함.
 - 근거: BATCH-AS-SINGLE-REPEATER-FOUNDATION_20260925.md.
+- 갱신(2026-09-29, 진행): 일괄 2~5단계를 개별과 같은 구성·같은
+  판정으로 재구성 완료 — 2단계(체크박스·일치여부·중단), 3단계
+  (표·후보·계획 자동 갱신), 4단계(단일 실행·COUNT는 2단계
+  결과·상세 SQL), 5단계(개별 5단계 부품 재사용). 상태 입구
+  4개 사건 함수로 통일 + 가드 테스트(a94ff91e, 48d34178).
+  남은 것: 재사용 미동작, 개별 "(COUNT만)" 표시, 3단계 서버
+  작업화·일시정지.
 
 ### M448. 정리 필요 - DEAD-CODE-AFTER-ONECLICK-AND-RECORD-HASH
 - 쓰이지 않게 된 코드: single_validation_run_facade의
@@ -12559,6 +12574,13 @@ THIRD-TRY_20260916.md
   execute_route._autowire_record_hash_verify),
   record_hash_verify_core·group_recordset_hash*(다른 사용처
   확인 후). 삭제는 사용자 확인 후.
+- 갱신(2026-09-29): 새로 쓰이지 않게 된 코드 추가 — 레거시
+  4단계 경로(stats-validation-plans 화면 호출부,
+  batchExecuteStatsPlans, _batchExecFinalize), #batchCmdBar
+  (일시정지 기능 때 재사용 가능성으로 보존),
+  _mvRenderBatchStage5Ctx, exportWrapperResults,
+  _renderExecutionPlanSummary, 5번 탭에서 표시 없이 조회만
+  남은 batchLoadHistory. 삭제는 사용자 확인 후.
 
 ### M449. 버그(미착수) - DEV-E2E-SERVER-HELPER-DEFECTS
 - scripts/dev_e2e/_server_launch_helper.py: ① worktree에서
@@ -12575,6 +12597,8 @@ THIRD-TRY_20260916.md
   동일 저장값으로 통일, 1·2번 탭 표 배지 제거·글자만, 버튼은 글자
   링크(75ca2717, dcc2e0f9). 파싱 OK+문법 오류 표시 등 잔여는
   미확인.
+- 갱신(2026-09-29): 5번 탭 "오류 7 vs 실패 0" 모순 해소(같은
+  서버 집계를 두 곳이 다르게 합산하던 것, 4a38ee9e).
 
 ### M451. 확인 필요 - BATCH-IN-FILE-DUPLICATE-ROWS-REGISTERED-AS-VALID
 - 파일 안 중복 행이 업로드 시 정상 대상으로 등록됨. 엄격 게이트로
@@ -12650,6 +12674,10 @@ THIRD-TRY_20260916.md
   DTV_batch_wrapper_result(facade_count)에 저장. 이 옛 컬럼을
   읽는 다른 코드가 조용히 틀리고 있을 수 있어 전수 확인 필요.
 - 근거: BATCH-STAGE3-HEADER-ESTIMATE-AND-STAGE45-VALIDITY-FIX.
+- 갱신(2026-09-29): 4단계 예상 그룹 수 계산은 source_count
+  대신 DTV_batch_wrapper_result(facade_count) 사용으로
+  우회(7369a409). 옛 컬럼 source_count 자체는 미해결 — 다른
+  소비처 전수 확인 여전히 필요.
 
 ### M462. 버그(미착수) - BATCH-TGT-CONNECTION-ID-NOT-SAVED-ON-UPLOAD
 - 업로드 시 그룹의 원본 연결정보만 저장하고 목적 연결정보
@@ -12662,6 +12690,8 @@ THIRD-TRY_20260916.md
   없이 종료(1회, 재현 안 됨). 이후 운영 8000 재기동은 사용자가
   PowerShell에서 직접 수행하는 방식으로 전환. 재발 시 종료 시각·
   직전 작업 기록.
+- 갱신(2026-09-29): 이후 운영 8000은 사용자가 PowerShell에서
+  직접 재기동, 재발 없음.
 
 ### M464. 결정·계획 - INTERNAL-DB-NAMING-CONVENTION
 - 조사 완료(INTERNAL-DB-MOIS-STANDARD-NAMING-AUDIT_20260927.md/
@@ -12706,6 +12736,13 @@ THIRD-TRY_20260916.md
 - 참고: "##" 접두 테이블은 2026-09-04 SQLite 70개 테이블 재정리 때
   "모호" 분류 표시로 붙인 것(조사 보고서의 "SQL Server식 실험
   흔적" 추정은 부정확).
+- 갱신(2026-09-29): ① 삭제 후보 정리 1차 완료 — 미사용 테이블
+  22개 삭제(86bcd3da), 백업
+  X:\xDataNexPro\_backup\20260928-before-dead-drop\ + 태그
+  backup-20260928-before-dead-drop. 빈 DB 파일
+  (validation_results.db, test_validation_idempotency.db)은
+  파일 유지. 채움률 저조 컬럼 110개·## 사용 중 테이블 이름
+  확정·exact_diff_runs.db는 미착수.
 
 ### M465. 운영 메모 - VERIFY-WORKFLOW-NOTES-20260926
 - Drive 스크린샷은 Claude(웹)가 read_file_content로 글자를 읽어
@@ -12713,3 +12750,75 @@ THIRD-TRY_20260916.md
   프로필/검증 경로" 화면의 "접속" 버튼 실제 클릭으로 해결. 지침
   검증에서 상태 주입(page.evaluate) 금지 원칙 재확인(주입 검증이
   실제 버그를 놓친 사례).
+
+### M466. 완료 - FALSE-PASS-FIXES-20260928
+- 판정 거짓 통과 3건 수정: ① 4번 탭이 실행 status(OK)를 판정
+  "일치"로 읽음 → result_status 우선(bc475bf9 계열) ② 4단계가
+  row_id별 "먼저 나온" 옛 계획을 골라 3단계 선택과 다른 GROUP
+  BY로 실행 → 최신 plan_id(7a3bf58a) ③ 후보 없어 COUNT만
+  비교한 결과를 "일치"로만 표시 → "일치(COUNT만)/불일치
+  (COUNT만)"(4aa92b2e). 실 Oracle MV_ORA_TEST(AMT 차이 5그룹)가
+  "불일치"로 정확히 표시됨 확인. 보고만 된 곳: [검증 결과 상세]
+  메뉴 판정 점검 미실시.
+
+### M467. 완료 - BATCH-STAGE4-RESULT-INTEGRITY
+- 4단계 결과 저장 target_table 접두어 누락으로 "미실행" 표시
+  (71d238ea), detail_json 6000자 절단이 JSON을 깨뜨림 → 긴
+  SQL만 2500자 절단(71d238ea), 4단계 Oracle 해시 dbms 누락으로
+  탭 4 미완료, 원본 통계 SQL 스키마 누락(미리보기 경로만,
+  74795960), 3단계 재선정 시 계획 스냅샷 미갱신 → 3단계 성공
+  시 자동 갱신(5ba1f607), Excel 옛 회차 집계값 섞임 →
+  FULL_VALIDATION 회차 병합 시 비움(05ec5037).
+
+### M468. 완료 - BATCH-UI-STATE-UNIFY
+- 숨은 자동 탭 되돌림(refreshBatchSteps) 제거, 4단계 후 2번 탭
+  튕김(목록 새로고침이 2단계 플래그 리셋) 수정(f18768e8), 확인창
+  3개 제거, 중복 하단바(#batchCmdBar) 숨김, 3·4번 탭 "이번 실행
+  전 빈칸", 메뉴 이동 후 복귀 시 상태 유지(4a38ee9e), 2단계
+  COUNT 중단 버튼(ca3b854a), 4단계 상세 COUNT SQL 제거·2단계
+  결과 한 줄(74795960).
+
+### M469. 진행 중(설계 확정) - RUN-REGISTRY
+- 설계(RUN-REGISTRY-DESIGN-INVESTIGATION_20260928,
+  docs/RUN-REGISTRY-DESIGN.md): 기존 DTV_batch_execution_state
+  확장 + DTV_run_item 신설. 사용자 확정: heartbeat 30초(시계
+  기준)·끊김 3분 → 죽은 작업, 일시정지 최대 24시간 후 자동
+  중단, 매 실행 새 행, 다시 붙기 확인은 화면 로드 시 1회, 즉시
+  취소 포함, 개별 1·2·3·5단계 서버 작업화는 보류.
+- 완료: F1+F2(a5d0442b) — 단 item 기록이 실시간이 아니라 종료
+  시 일괄(서버 중단 시 완료분도 PENDING). 다음: item 실시간
+  기록 + heartbeat + 다시 붙기 + 3단계 서버 작업화 → 일시정지·
+  재개 → 즉시 취소 → (나중) 자동 연속 실행(서버 작업).
+
+### M470. 결정 - BATCH-PAUSE-VS-STOP
+- 중단 = 진행 쿼리 즉시 취소·이번 실행 부분 결과 버림·다음은
+  처음부터. 일시정지(일괄만) = 현재 테이블까지 마치고 멈춤·
+  재개 시 남은 것만. 일시정지 중 탭·본문 잠금, 서버가 상태
+  보관(새로고침해도 유지). 일괄 최종 형태는 1단계(또는 COUNT)
+  까지 수동, 이후 자동 연속 실행(서버) — 지금은 단계별 확인을
+  위해 수동.
+
+### M471. 버그(미착수) - BATCH-REUSE-NOT-WORKING
+- 같은 조건 4단계 연속 실행에도 재사용 0건. 화면 경로
+  (run-wrapper → 병렬 러너)에서 재사용 기록(source/
+  target_sql_hash, reuse_payload_json)이 NULL로 저장되고,
+  서비스 함수 직접 호출 경로는 정상. 원인 미확정 — 지침
+  BATCH-REUSE-ROUTE-PATH-AND-SINGLE-COUNTONLY-LABEL로 진행
+  예정.
+
+### M472. 버그(미착수) - SINGLE-COUNTONLY-LABEL-MISSING
+- 개별검증 응답에 effective_selection.count_only가 없어
+  "(COUNT만)" 표시가 개별에는 안 나옴 — 같은 지침에서 처리
+  예정.
+
+### M473. 운영 메모 - WORKFLOW-NOTES-20260928
+- ① 자동 push 훅 활성 상태 — 커밋 후 amend 금지(amend 2회로
+  로컬·원격 분기 → 사용자가 git reset --hard origin/main으로
+  정리). ② Drive .md가 웹 Claude 도구에서 빈 내용으로 읽히는
+  경우 있어 보고서는 .txt 동시 저장. ③ Claude Code 출력이
+  일본어로 나온 사례 — 지침 첫 줄에 "일본어·영어로 답하지 말
+  것" 명시. ④ 긴 E2E에서 터미널 멈춤 사례 — 장면별 10분 상한
+  규칙 적용. ⑤ 3단계 예상 그룹 수 재확정이 4단계에서 테이블
+  마다 실DB 고유값 조회를 추가(대용량 시 시간 증가 가능). ⑥
+  계획 스냅샷이 정책 변경마다 누적(최신만 사용) — M464 정리
+  대상.
