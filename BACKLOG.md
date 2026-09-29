@@ -12581,6 +12581,10 @@ THIRD-TRY_20260916.md
   _mvRenderBatchStage5Ctx, exportWrapperResults,
   _renderExecutionPlanSummary, 5번 탭에서 표시 없이 조회만
   남은 batchLoadHistory. 삭제는 사용자 확인 후.
+- 갱신(2026-09-29 저녁): 쓰지 않게 된 코드 추가 —
+  batchOnCandCheck, batchSaveCandidateSelection(정의·window
+  export만 남음, 일괄 3단계 보기 전용 전환 bc94a1ed). 삭제는
+  사용자 확인 후.
 
 ### M449. 버그(미착수) - DEV-E2E-SERVER-HELPER-DEFECTS
 - scripts/dev_e2e/_server_launch_helper.py: ① worktree에서
@@ -12760,6 +12764,10 @@ THIRD-TRY_20260916.md
   (COUNT만)"(4aa92b2e). 실 Oracle MV_ORA_TEST(AMT 차이 5그룹)가
   "불일치"로 정확히 표시됨 확인. 보고만 된 곳: [검증 결과 상세]
   메뉴 판정 점검 미실시.
+- 갱신(2026-09-29 저녁): 거짓 판정 추가 수정 — 4번 탭 WARNING
+  폴백이 result_status보다 먼저 걸려 "불일치"가 "오류"로
+  표시(49a327bc), "(COUNT만)" 표시 조건에서 !hasStats
+  제거(6cecab3d).
 
 ### M467. 완료 - BATCH-STAGE4-RESULT-INTEGRITY
 - 4단계 결과 저장 target_table 접두어 누락으로 "미실행" 표시
@@ -12805,11 +12813,19 @@ THIRD-TRY_20260916.md
   서비스 함수 직접 호출 경로는 정상. 원인 미확정 — 지침
   BATCH-REUSE-ROUTE-PATH-AND-SINGLE-COUNTONLY-LABEL로 진행
   예정.
+- 갱신(2026-09-29 저녁, 완료): 재사용 미동작 원인 = 재사용
+  조회 target_table이 bare(analyze 추출)인데 저장은
+  schema-qualified라 정확일치 항상 실패(856fe9e6). 병렬 러너
+  재사용 지문 dbms 누락도 수정(a045f991). 2회차 실제 재사용
+  실측 확인(BATCH-ERROR-REASONS-TOOLTIPS-REUSE-FIX).
 
 ### M472. 버그(미착수) - SINGLE-COUNTONLY-LABEL-MISSING
 - 개별검증 응답에 effective_selection.count_only가 없어
   "(COUNT만)" 표시가 개별에는 안 나옴 — 같은 지침에서 처리
   예정.
+- 갱신(2026-09-29 저녁, 완료): 개별 응답에
+  effective_selection.count_only 추가(92bcb423) + 공용 표시
+  조건 수정(6cecab3d).
 
 ### M473. 운영 메모 - WORKFLOW-NOTES-20260928
 - ① 자동 push 훅 활성 상태 — 커밋 후 amend 금지(amend 2회로
@@ -12822,3 +12838,65 @@ THIRD-TRY_20260916.md
   마다 실DB 고유값 조회를 추가(대용량 시 시간 증가 가능). ⑥
   계획 스냅샷이 정책 변경마다 누적(최신만 사용) — M464 정리
   대상.
+
+### M474. 완료 - BATCH-STAGE1-LATEST-FLAG-AND-ERROR-COLUMN
+- 1번 탭 "최신" 칸 제거(판정이 DB 삽입 순서 기준이라 개별
+  "그룹 등록" 행이 최신을 가져감), 나중 재업로드 배치 안내
+  한 줄, 오류 칸 오류 없으면 빈칸·종류만(bbd8e6c9).
+- 파트 A 확정: BAT_008 선택 시 2~5단계 모두 BAT_008 SQL
+  사용(8개 실행 SQL 대조 일치). 참고: 개별 "그룹 등록"이 일괄
+  업로드와 같은 설정 표에 섞임 — 그룹 current 기준 화면이
+  있다면 개별 등록 SQL이 우선될 수 있음(설계 확인 필요).
+- 근거: BATCH-STAGE1-LATEST-FLAG-AND-ERROR-COLUMN_20260929.md.
+
+### M475. 완료 - BATCH-UI-REASONS-TOOLTIPS
+- 코드성 값 마우스 설명 공용 함수 _mvCodeTooltip(중복상태·
+  검증대상·일치여부·후보 상태·결과상태 오류 사유, 88252374),
+  4단계 상세가 실행 회차(execution_run_id) 지정 조회, 게이트
+  차단 ERROR 행 target_table 유실 수정(49a327bc), 일괄 3번 탭
+  상세 보기 전용(선정/제외만, bc94a1ed).
+- 근거: BATCH-ERROR-REASONS-TOOLTIPS-REUSE-FIX_20260929.md.
+
+### M476. 완료 - SOURCE-PROFILE-LOOKUP-FIX
+- 원본 profile 조회 실패로 "고유값 수 미수집" 오표시
+  (TGT_GRAYCROWD_LIVE.CODE_G) — 원인 3겹: bare↔qualified 조회
+  실패(근본), alias 없는 단일 원본 SQL 컬럼 매핑 누락, 목적
+  0건 빈 profile이 원본 값을 덮어씀(aad166e2). 주의: 이 수정의
+  접미 일치(LIKE '%.name')는 아래 M477 결정으로 제거 예정.
+- 근거: BATCH-STAGE3-READONLY-AND-DISTINCT-DISPLAY-FIX_20260929.md
+  (파트B).
+
+### M477. 결정·진행 - SCHEMA-QUALIFIED-TABLE-IDENTIFIER
+- 스키마 접두어 불일치 버그 5회 반복(71d238ea, 74795960,
+  "최신" 판정, 856fe9e6, aad166e2). 사용자 결정(2026-09-29):
+  ① 이관 SQL의 실제 테이블 참조(INSERT 대상·FROM/JOIN 원본)는
+  반드시 스키마 포함 — 없으면 1단계에서 "스키마 누락" 오류
+  (개별·일괄 공통, 일괄은 엄격 게이트). 엉뚱한 스키마를 뒤져
+  결과를 내는 것이 더 큰 문제. ② 내부 식별자는 항상 스키마
+  포함 이름 하나로 정확 일치만 — 접미 일치·bare 폴백 등 추측
+  매칭 전부 제거 + 재발 방지 가드. 예외: CTE 이름·서브쿼리
+  별칭. 동의어·DB 링크로 스키마 없이 쓴 경우도 오류.
+- 진행: 지침 SCHEMA-QUALIFIED-TABLE-IDENTIFIER-ENFORCE
+  (+AMEND1: 개별·일괄 후보 선정 동일성 자동 테스트) 실행 중.
+
+### M478. 결정 - GROUPBY-CANDIDATE-SELECTION-RULE
+- 사용자 결정(2026-09-29): 후보 추천은 개별·일괄 같은 함수·
+  같은 기준(카디널리티·점수·선정). 차이는 개별만 사람이 추가
+  선택 가능. "선택가능" 분류(표시·상태) 폐지 — 모든 그룹
+  후보는 "선정" 또는 "제외(사유)". 선정 = 제약 없는 후보
+  점수 순 상위 N개(전역설정). 제외 사유: 고카디널리티(예상
+  그룹 수), 최대 개수 초과, 근거 부족(이름 기반 추정 등),
+  관리컬럼 의심, PK·식별자, 타입 위험, 고유값 확인 불가
+  (사용자 결정: 제외), 근거 충돌 등 — 고카디널리티 등 심각
+  제약이면 그룹 후보가 하나도 없어도 제외. 개별 수동 추가는
+  "최대 개수 초과"·"근거 부족"만 허용, 나머지 제외는 체크
+  불가. 일괄은 보기 전용.
+- 진행: 지침 GROUPBY-CANDIDATE-DEFAULT-SELECTION-RULE(+AMEND1)
+  — SCHEMA 지침 완료 후 실행 예정.
+
+### M479. 운영 메모 - WORKFLOW-NOTES-20260929
+- ① 테스트 서버 인증 우회(MV_AUTH_DISABLED) 사용 사례 — 격리
+  서버 한정, 가능하면 인증 켠 채 검증. ② 네이티브 title
+  툴팁은 Playwright 캡처에 안 잡힘 → DOM 속성 확인으로 대체
+  허용. ③ 격리 환경 Oracle 연결 간헐 실패 사례(수정 전 캡처
+  누락) — 재시도·사유 명시.
