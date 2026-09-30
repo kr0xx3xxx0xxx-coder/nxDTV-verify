@@ -12592,6 +12592,12 @@ THIRD-TRY_20260916.md
   호출부 0), legacy core
   services/validation_job_core.py·services/batch_runner.py
   (비교 테스트 6건 skip 처리 b8c53c96). 삭제는 사용자 확인 후.
+- 갱신(2026-09-30 저녁): 쓰지 않는 코드 추가 — 옛
+  자동저장 run_batch_auto_save()
+  (services/batch_stats_execute_service.py:777, 화면
+  호출부 없음 — 공식 경로로 대체 8ef4f4dd), DOM에 없는
+  id 'batchWrapperResultBody' 참조(ui/tabler_renderer.py:
+  10281/10293/10419). 삭제는 사용자 확인 후.
 
 ### M449. 버그(미착수) - DEV-E2E-SERVER-HELPER-DEFECTS
 - scripts/dev_e2e/_server_launch_helper.py: ① worktree에서
@@ -12935,6 +12941,16 @@ THIRD-TRY_20260916.md
   CANDIDATE-EQUALITY-AND-SELECTION-RULE_20260929.txt,
   CANDIDATE-LABEL-DICT-UNIFY-AND-SELECTABLE-REMOVAL_20260930.txt,
   STAGE2-TABLE-CLEANUP-AND-SELECTABLE-AUTOPICK-SETTING_20260930.txt.
+- 갱신(2026-09-30 저녁): 3번 탭 자동 선정 사유 기록·
+  표시(818c3016) — apply_batch_selectable_autopick가
+  {picked, reason} 반환(APPLIED/NOT_NEEDED/
+  NO_SELECTABLE/DISTINCT_UNKNOWN/HIGH_CARDINALITY/
+  DISABLED), 스냅샷 batch_selectable_autopick_reason
+  저장, 표 "후보 상태"에 사유 한 줄. 이번 3단계 대상에서
+  제외된 행(목적 0건 등)은 옛 스냅샷 상세를 숨기고 제외
+  사유만 표시.
+- 근거(추가, 2026-09-30 저녁):
+  BATCH-STAGE5-RESULT-SOURCE-AUTOPICK-REASON-AND-SAVE_20260930.txt.
 
 ### M479. 운영 메모 - WORKFLOW-NOTES-20260929
 - ① 테스트 서버 인증 우회(MV_AUTH_DISABLED) 사용 사례 — 격리
@@ -12971,6 +12987,9 @@ THIRD-TRY_20260916.md
   처음 나올 때 확인. 로직은 단위 테스트 10건·배선
   가드로 확인됨.
 - 근거: BATCH-AUTOPICK-SETTING-UI-AND-POSITIVE-VERIFY_20260930.txt.
+- 갱신(2026-09-30 저녁): 사유 코드 추가로 실사용 시 "왜
+  자동 선정이 안 됐는지"가 화면에 표시되어 첫 실데이터
+  발생 시 확인이 쉬워짐(여전히 미룸).
 
 ### M483. 설계 확인 필요 - SINGLE-GROUP-REGISTER-IS-CURRENT
 - 개별검증 "그룹 등록"(SINGLE_REGISTERED) 행이 일괄
@@ -13001,3 +13020,70 @@ THIRD-TRY_20260916.md
   요약에서 "추정"과 "확인"을 구분. ③ Drive 스크린샷이
   웹 Claude 도구에서 글자 추출이 안 되는 경우 있음 —
   핵심 판정은 보고서 수치·API 값으로 교차 확인.
+
+### M486. 완료 - BATCH-STAGE5-RESULT-SOURCE-FIX
+- 5번 탭이 run_type 구분 없이 "가장 최근 실행"을 골라
+  COUNT 재실행 후 통계 결과가 가려지던 문제 —
+  FULL_VALIDATION 우선으로 수정(e2c46d6c,
+  services/batch_wrapper_result_store.py::
+  get_latest_wrapper_results). 4·5번 탭 8개 테이블 결과
+  일치 확인. 요약 줄에 "제외(목적 0건)" 분리 표시.
+- 근거: BATCH-STAGE5-RESULT-SOURCE-AUTOPICK-REASON-AND-SAVE_20260930.txt.
+
+### M487. 완료 - BATCH-STAGE5-SAVE-AND-AUTOSAVE-OFFICIAL
+- ① 5번 탭 하단바 "저장"(45efb4a4, 8a7cd554) — 개별
+  5단계 저장 3모듈(batch_auto_save_gate/prepare/store)
+  반복 호출, 멱등(2차 클릭 "기존 저장"). ② 4단계 결과에
+  불일치 그룹 원본 보관(5b5f6920) — 수동 저장 재조회
+  0건. ③ 2단계 "불일치 자동저장" 체크박스를 공식 4단계
+  경로(run-wrapper 동기·비동기)에 연결(8ef4f4dd) —
+  기존에는 옛 경로에만 배선돼 체크해도 저장되지 않았음.
+  ④ 2단계 체크박스 초기화 의심 현상 — 브라우저 탭 전환·
+  메뉴 이동·일괄 탭 이동 3경우 재현 안 됨(1c5e806d, 코드
+  변경 없음). 체크 초기화는 COUNT 재실행 시(설계)뿐.
+- 근거: BATCH-AUTOSAVE-OFFICIAL-PATH-AND-GROUP-ROWS-KEEP_20260930.txt.
+
+### M488. 버그(미착수) - BATCH-SAVE-TARGET-EMPTY-REQUERY
+- 저장(자동·수동)이 결과상태 "불일치"인 행을 대상으로
+  잡아, 4단계에서 제외된 목적 0건(TARGET_EMPTY —
+  MV_GBQD_TGT, TGT_GRAYCROWD_LIVE) 행에도 통계 쿼리를
+  재조회(자동저장 실측 "재조회 2건"). 제외된 테이블에
+  쿼리를 보내는 것은 규칙 위반·부하 — 저장 대상에서
+  4단계 제외 행(TARGET_EMPTY·HOLD 등) 제외 필요(소규모
+  수정).
+- 근거: BATCH-AUTOSAVE-OFFICIAL-PATH-AND-GROUP-ROWS-KEEP_20260930.txt.
+
+### M489. 개선(낮음) - BATCH-KEPT-GROUP-ROWS-CAP-ALIGN
+- 불일치 그룹 원본 보관 상한이 화면 표시 상한
+  (mismatch_group_display_truncated /
+  MAX_DISPLAY_ROWS)을 기준으로 함 — 자동저장 게이트의
+  그룹 수 상한과 다르면 일부 그룹이 보관되지 않아
+  재조회로 폴백 가능. 동작은 정확하므로 급하지 않음.
+  저장 게이트 상한과 정렬 검토.
+- 근거: BATCH-AUTOSAVE-OFFICIAL-PATH-AND-GROUP-ROWS-KEEP_20260930.txt.
+
+### M490. 정리 필요 - REPO-UNTRACKED-FILES-CLEANUP
+- 코드 저장소에 git 미관리(untracked) 파일 대량 누적
+  (2026-09-30 git status): DB 백업
+  db/migration_validator.db.bak_* 6개(2026-09-14~18),
+  scratchpad/ 폴더 수십 개와 scratchpad_*.txt 등,
+  scripts/dev_e2e/ 검증 스크립트·before/after json 수백
+  개, docs/archive/history_md/ 옛 인계 문서 약 8개,
+  tests/ 미커밋 3개(test_batch_detail_grid_pagination.py,
+  test_m160_sort_elimination_gate.py,
+  test_stream_join_wait_and_cancel_banner.py). untracked라
+  삭제 시 복구 불가 — 분류(커밋 보관/_backup 이동/삭제)
+  목록을 만든 뒤 사용자 확인 후 처리.
+
+### M491. 운영 메모 - WORKFLOW-NOTES-20260930-EVENING
+- ① 테스트 서버 잔존 확인법: netstat -ano | findstr
+  :8000 | findstr LISTENING 으로 8000 PID 확인 →
+  Get-CimInstance Win32_Process -Filter
+  "Name='python.exe'" 로 명령줄 확인(web_server.py 외
+  scripts\dev_e2e\… 또는 임시 폴더 경로면 잔존 테스트
+  프로세스). ② 5번 탭 결과는 배치의 가장 최근
+  FULL_VALIDATION(4단계) 실행 기준 — 테스트 시 상세의
+  실행 시각으로 이번 실행인지 확인. ③ Claude Code 작업이
+  의도치 않게 재실행된 사례 — 멈춘 뒤 git log(HEAD =
+  origin/main)·git status(modified 없음)·python
+  프로세스로 흔적 확인.
