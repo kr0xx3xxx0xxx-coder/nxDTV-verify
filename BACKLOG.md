@@ -12585,6 +12585,13 @@ THIRD-TRY_20260916.md
   batchOnCandCheck, batchSaveCandidateSelection(정의·window
   export만 남음, 일괄 3단계 보기 전용 전환 bc94a1ed). 삭제는
   사용자 확인 후.
+- 갱신(2026-09-30): 쓰지 않는 코드 추가 —
+  batchRunCountPrecheck(호출부 0), batchWrapperResultBody
+  참조(DOM 부재), batchOnCandCheck·
+  batchSaveCandidateSelection(일괄 3단계 보기 전용 후
+  호출부 0), legacy core
+  services/validation_job_core.py·services/batch_runner.py
+  (비교 테스트 6건 skip 처리 b8c53c96). 삭제는 사용자 확인 후.
 
 ### M449. 버그(미착수) - DEV-E2E-SERVER-HELPER-DEFECTS
 - scripts/dev_e2e/_server_launch_helper.py: ① worktree에서
@@ -12878,6 +12885,15 @@ THIRD-TRY_20260916.md
   별칭. 동의어·DB 링크로 스키마 없이 쓴 경우도 오류.
 - 진행: 지침 SCHEMA-QUALIFIED-TABLE-IDENTIFIER-ENFORCE
   (+AMEND1: 개별·일괄 후보 선정 동일성 자동 테스트) 실행 중.
+- 갱신(2026-09-30): 파트 A 완료(de41a2d4) — 1단계 "스키마
+  누락" 오류(개별·일괄 공통, 일괄 엄격 게이트). 운영
+  데이터 스키마 포함 비율 사실상 100%. 파트 B(파서·
+  analyze 스키마 유지)·C(추측 매칭 제거)·D(재발 방지
+  가드)는 보류 — 소비 호출부 전수 조사 문서
+  docs/PARSER-TABLE-REF-CONSUMERS.md(bb421d7e) 기반으로
+  단계 진행 예정. 신규 입력은 파트 A로 차단되어 "엉뚱한
+  스키마" 결과 경로는 막힌 상태.
+- 근거: SCHEMA-QUALIFIED-TABLE-IDENTIFIER-ENFORCE_20260929.txt.
 
 ### M478. 결정 - GROUPBY-CANDIDATE-SELECTION-RULE
 - 사용자 결정(2026-09-29): 후보 추천은 개별·일괄 같은 함수·
@@ -12893,6 +12909,32 @@ THIRD-TRY_20260916.md
   불가. 일괄은 보기 전용.
 - 진행: 지침 GROUPBY-CANDIDATE-DEFAULT-SELECTION-RULE(+AMEND1)
   — SCHEMA 지침 완료 후 실행 예정.
+- 갱신(2026-09-30, 결정 변경 포함): ① 후보 최종 확정을
+  개별·일괄 공용 함수 finalize_column_candidates 하나로
+  통일(1f59d85a, f513519a) — 일괄이
+  attach_evidence_contracts·apply_recommendation_gates를
+  건너뛰던 문제 해소. ② 개별·일괄 동일성 회귀 테스트
+  tests/test_candidate_equality_bat008.py(bb421d7e) — 8
+  passed/1 xfailed(TGT_GRAYCROWD_LIVE: 목적 0건이라 타입
+  메타 미수집, 실사용에선 목적 0건 제외로 3단계 미진입).
+  ③ 표시 사전 단일화 ui/js_candidate_labels.py(c1f7e054,
+  06126214, d0d465f9) + 단일 출처 가드. ④ 사용자 결정
+  변경(2026-09-30): "선택가능" 폐지를 되돌려 기본추천/
+  선택가능/제외 표시 유지(6a638849) — 선택가능 마우스
+  설명에 기본에서 빠진 이유(최대 개수 초과/근거 부족).
+  개별 3단계는 선택가능만 체크 가능, 그 외 제외는
+  비활성. ⑤ 일괄 전용 "기본 그룹 후보가 없을 때 선택가능
+  후보 자동 선정"(기본 켜기, 1개, 안전조건: 고유값 확인·
+  예상 그룹 수 정상) — apply_batch_selectable_autopick
+  (88d4a3d2, 공용 판정 이후 일괄 전용 단계, 개별 미호출
+  가드), 설정 화면 토글(db447076), 표시 "기본추천(보완)".
+  개별은 이 설정을 보지 않음(판정 기준 설정은 개별·일괄
+  공통 유지). 반복기 원칙 문서에 "사람의 선택을 대신하는
+  일괄 정책 단계" 허용 항목 추가.
+- 근거: BATCH-CANDIDATE-FINALIZE-GATES-UNIFY_20260929.txt,
+  CANDIDATE-EQUALITY-AND-SELECTION-RULE_20260929.txt,
+  CANDIDATE-LABEL-DICT-UNIFY-AND-SELECTABLE-REMOVAL_20260930.txt,
+  STAGE2-TABLE-CLEANUP-AND-SELECTABLE-AUTOPICK-SETTING_20260930.txt.
 
 ### M479. 운영 메모 - WORKFLOW-NOTES-20260929
 - ① 테스트 서버 인증 우회(MV_AUTH_DISABLED) 사용 사례 — 격리
@@ -12900,3 +12942,62 @@ THIRD-TRY_20260916.md
   툴팁은 Playwright 캡처에 안 잡힘 → DOM 속성 확인으로 대체
   허용. ③ 격리 환경 Oracle 연결 간헐 실패 사례(수정 전 캡처
   누락) — 재시도·사유 명시.
+
+### M480. 완료 - BATCH-TARGET-EMPTY-PARITY
+- 목적 0건(원본>0) 처리를 개별과 통일(547dc714): 일괄
+  2단계 COUNT_STATE_TARGET_EMPTY(개별
+  evaluate_count_gate 재사용), 3·4단계 대상에서 정책
+  무관 절대 제외, 3~5단계 "제외(목적 0건)". 2번 탭
+  일치여부는 "불일치" + 마우스 설명(a0a04557). 정책별
+  3단계 대상 건수 고정 회귀 테스트(4dc14fca: 일치만 1건
+  / 불일치 포함 6건).
+- 근거: BATCH-SELECTED-BATCH-SCOPE-AND-SINGLE-PARITY_20260929.txt,
+  STAGE2-TABLE-CLEANUP-AND-SELECTABLE-AUTOPICK-SETTING_20260930.txt,
+  STAGE3-ZERO-TARGET-REGRESSION-AND-AUTOPICK-LIVE-VERIFY_20260930.txt.
+
+### M481. 완료 - BATCH-STAGE2-TABLE-CLEANUP
+- 2번 탭 "중복상태"·"검증대상" 칸 제거(사용자 정의:
+  중복은 이번 배치 안 같은 목적 테이블 — 1단계에서
+  차단되므로 2단계 칸 불필요), 카드 안 "COUNT 사전검증
+  중단" 버튼 제거(하단바 중단 하나), DB 미연결 시 2단계
+  COUNT 실행 차단 안내(474d73c4 — 오류 행 미생성 확인).
+- 근거: STAGE2-TABLE-CLEANUP-AND-SELECTABLE-AUTOPICK-SETTING_20260930.txt.
+
+### M482. 확인 필요(미룸) - BATCH-AUTOPICK-POSITIVE-LIVE-VERIFY
+- "기본추천(보완)" 자동 선정의 실화면 양성 실증 미완 —
+  운영 데이터에 조건 충족 테이블 없음, 테스트 전용
+  DB(Neon) 접속 정보가 Claude Code 환경에 없음(.env
+  부재). 사용자 결정(2026-09-30): 실제 프로젝트 데이터에서
+  처음 나올 때 확인. 로직은 단위 테스트 10건·배선
+  가드로 확인됨.
+- 근거: BATCH-AUTOPICK-SETTING-UI-AND-POSITIVE-VERIFY_20260930.txt.
+
+### M483. 설계 확인 필요 - SINGLE-GROUP-REGISTER-IS-CURRENT
+- 개별검증 "그룹 등록"(SINGLE_REGISTERED) 행이 일괄
+  업로드 행과 같은 설정 표에 들어가 is_current를
+  가져간다(BAT_008 8행 is_current=0). 일괄 2~5단계는
+  선택 배치 기준이라 영향 없음(확인). 그룹 current
+  기준을 쓰는 다른 화면이 있다면 개별 등록 SQL이 우선
+  표시될 수 있음 — 의도 확인 필요.
+
+### M484. 정리 필요 - TEST-SUITE-HEALTH
+- ① 화면 관련 기존 테스트 12건이 코드 변경(함수명·
+  시그니처) 후 갱신되지 않아 원래부터 실패
+  (test_single_batch_project_gate 4건,
+  test_batch_step_tabs_workflow 4건,
+  test_batch_delta_rerun_freshness 2건,
+  test_batch_no_auto_select_explicit_selection 2건).
+  ② 테스트 교차 오염 — 관련 60개 파일 합본 실행 시 32건
+  실패, 단독 실행 시 전부 통과(테스트 격리 보강 필요).
+  ③ 후보 관련 기존 실패 24건(-k candidate, 사전 존재).
+
+### M485. 운영 메모 - WORKFLOW-NOTES-20260930
+- ① 격리 서버는 새로 띄울 때마다 "DB 프로필/검증 경로"
+  에서 "접속"을 실제로 눌러야 함 — 누락 시 COUNT 전부
+  ERROR → 3단계 "0/0"(코드 회귀로 오진한 사례, 4dc14fca로
+  정정). ② 오진 연쇄 교훈: 이전 보고서의 "추정"을 다음
+  지침이 사실로 전제해 불필요한 작업이 생긴 사례 3건
+  (is_current 차단, distinct 0 오인, 0/0 회귀) — 보고서·
+  요약에서 "추정"과 "확인"을 구분. ③ Drive 스크린샷이
+  웹 Claude 도구에서 글자 추출이 안 되는 경우 있음 —
+  핵심 판정은 보고서 수치·API 값으로 교차 확인.
