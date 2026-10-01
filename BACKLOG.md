@@ -12598,6 +12598,8 @@ THIRD-TRY_20260916.md
   호출부 없음 — 공식 경로로 대체 8ef4f4dd), DOM에 없는
   id 'batchWrapperResultBody' 참조(ui/tabler_renderer.py:
   10281/10293/10419). 삭제는 사용자 확인 후.
+- 갱신(2026-10-01): #batchCmdBar 일괄 전용 옛 막대 코드
+  제거 완료(ac01dfb6) — 사용자 결정: 숨김이 아니라 제거.
 
 ### M449. 버그(미착수) - DEV-E2E-SERVER-HELPER-DEFECTS
 - scripts/dev_e2e/_server_launch_helper.py: ① worktree에서
@@ -12810,6 +12812,25 @@ THIRD-TRY_20260916.md
   시 일괄(서버 중단 시 완료분도 PENDING). 다음: item 실시간
   기록 + heartbeat + 다시 붙기 + 3단계 서버 작업화 → 일시정지·
   재개 → 즉시 취소 → (나중) 자동 연속 실행(서버 작업).
+- 갱신(2026-10-01): ① 일시정지·재개·중단 1~4단계 적용
+  (bee9ecd7·267ed2a4·89b019af — 1·3단계 비동기 job 전환).
+  ② 실행 제어 UI: 일괄은 하단바 메인 버튼 실행→⏸일시정지→
+  ▶재개, [■ 중단]은 탭 줄 오른쪽 상시 표시(실행·일시정지
+  중만 활성)+확인 모달, 개별은 기존 그대로(258d11aa,
+  ac01dfb6, 735e78e4). ③ 일시정지 안내 "진행 중인 테이블
+  N개가 끝나면 멈춥니다"·멈출 것 없으면 "완료까지 진행"
+  안내·상태 정리(55a3ec0d), 동시성 1에서 실제 PAUSED→재개
+  실측. ④ DTV_run_item 실시간 기록 — cross-thread SQLite
+  제약으로 그동안 전부 묵살되던 것 수정(30a146de). ⑤ 3단계
+  일시정지 키 불일치 수정(41c18f45). 남은 것: 새로고침 후
+  다시 붙기·heartbeat, 즉시 취소(현재 중단은 행 경계 협조).
+- 근거(추가, 2026-10-01):
+  BATCH-PAUSE-RESUME-AND-STAGE1-3-JOBS_20260930.txt,
+  RUN-CONTROL-MAIN-BUTTON-PAUSE-AND-STOP-AT-TABS_20260930.txt,
+  RUN-CONTROL-REAL-LONGRUN-VERIFY-AND-FIX_20261001.txt,
+  BATCH-NEW-BATCH-STAGE3-ZERO-AND-PAUSE-FEEDBACK_20261001.txt,
+  RUN-ITEM-REALTIME-RECORD-FIX_20261001.txt,
+  STAGE4-RUN-STAGE3-TARGETS-ONLY-AND-STAGE3-PAUSE-KEY_20261001.txt.
 
 ### M470. 결정 - BATCH-PAUSE-VS-STOP
 - 중단 = 진행 쿼리 즉시 취소·이번 실행 부분 결과 버림·다음은
@@ -12818,6 +12839,9 @@ THIRD-TRY_20260916.md
   보관(새로고침해도 유지). 일괄 최종 형태는 1단계(또는 COUNT)
   까지 수동, 이후 자동 연속 실행(서버) — 지금은 단계별 확인을
   위해 수동.
+- 갱신(2026-10-01): UI 결정 — 중단은 탭 줄 오른쪽 + 확인
+  모달(되돌릴 수 없는 중단에만 확인창 예외), 개별은 지금과
+  동일(258d11aa, ac01dfb6).
 
 ### M471. 버그(미착수) - BATCH-REUSE-NOT-WORKING
 - 같은 조건 4단계 연속 실행에도 재사용 0건. 화면 경로
@@ -12900,6 +12924,16 @@ THIRD-TRY_20260916.md
   단계 진행 예정. 신규 입력은 파트 A로 차단되어 "엉뚱한
   스키마" 결과 경로는 막힌 상태.
 - 근거: SCHEMA-QUALIFIED-TABLE-IDENTIFIER-ENFORCE_20260929.txt.
+- 갱신(2026-10-01): Oracle 카탈로그 조회에서 schema가
+  항상 ''로 강제되어 owner 필터가 한 번도 적용되지 않던
+  숨은 버그 수정 + 무필터 선행 조회 제거(1단계 analyze 약
+  13초→3.5초) + 카탈로그 조회 실패를 "테이블 없음"과 구분
+  (CATALOG_LOOKUP_FAILED, 1회 재시도)(e15701fc, 화면 표시
+  f644dd1b). 무필터 조회는 '테이블 없음' 판정 직전
+  안전망으로만 유지(옛 콤마 조인 스키마 누락 대비).
+- 근거(추가, 2026-10-01):
+  CATALOG-LOOKUP-FAILURE-DISTINGUISH-AND-UNSCOPED-QUERY-REMOVE_20261001.txt,
+  BATCH-UI-CATALOG-FOLLOWUP-AND-STAGE5-EXEC-TIME_20261001.txt.
 
 ### M478. 결정 - GROUPBY-CANDIDATE-SELECTION-RULE
 - 사용자 결정(2026-09-29): 후보 추천은 개별·일괄 같은 함수·
@@ -12951,6 +12985,9 @@ THIRD-TRY_20260916.md
   사유만 표시.
 - 근거(추가, 2026-09-30 저녁):
   BATCH-STAGE5-RESULT-SOURCE-AUTOPICK-REASON-AND-SAVE_20260930.txt.
+- 갱신(2026-10-01): 개별·일괄 동일성 테스트 9건 중 8
+  passed·1 xfail(목적 0건 타입 메타 — 실사용 영향 없음)
+  유지.
 
 ### M479. 운영 메모 - WORKFLOW-NOTES-20260929
 - ① 테스트 서버 인증 우회(MV_AUTH_DISABLED) 사용 사례 — 격리
@@ -13052,6 +13089,11 @@ THIRD-TRY_20260916.md
   4단계 제외 행(TARGET_EMPTY·HOLD 등) 제외 필요(소규모
   수정).
 - 근거: BATCH-AUTOSAVE-OFFICIAL-PATH-AND-GROUP-ROWS-KEEP_20260930.txt.
+- 갱신(2026-10-01, 완료): 제외 행 single_result에 "불일치
+  그룹 0건 보관" 표식으로 자동/수동 저장 재조회
+  차단(41c18f45).
+- 근거(추가, 2026-10-01):
+  STAGE4-RUN-STAGE3-TARGETS-ONLY-AND-STAGE3-PAUSE-KEY_20261001.txt.
 
 ### M489. 개선(낮음) - BATCH-KEPT-GROUP-ROWS-CAP-ALIGN
 - 불일치 그룹 원본 보관 상한이 화면 표시 상한
@@ -13074,6 +13116,9 @@ THIRD-TRY_20260916.md
   test_stream_join_wait_and_cancel_banner.py). untracked라
   삭제 시 복구 불가 — 분류(커밋 보관/_backup 이동/삭제)
   목록을 만든 뒤 사용자 확인 후 처리.
+- 갱신(2026-10-01): 테스트·격리 서버가 logs\server_*.pid
+  약 539개, scratchpad\wt_* worktree 다수를 추가로 남김 —
+  정리 대상에 포함.
 
 ### M491. 운영 메모 - WORKFLOW-NOTES-20260930-EVENING
 - ① 테스트 서버 잔존 확인법: netstat -ano | findstr
@@ -13087,3 +13132,105 @@ THIRD-TRY_20260916.md
   의도치 않게 재실행된 사례 — 멈춘 뒤 git log(HEAD =
   origin/main)·git status(modified 없음)·python
   프로세스로 흔적 확인.
+
+### M492. 완료 - BATCH-STAGE4-TARGETS-AND-POLICY
+- 4단계 = 3단계 대상만 실행, 나머지는 실행 없이 "제외(사유)"
+  행으로 남김(41c18f45). 정책 변경 후 delta에서 이전 제외 행
+  재실행(690aabe4), 3·4·5번 탭 제외 문구 통일(fbc3a5b3).
+- 사용자 결정(2026-10-01): 2단계 기본 = 전부 진행(체크박스
+  "COUNT 일치 테이블만 진행" — 체크 시 일치만)(f81d2949) —
+  이유: 불일치 테이블이 통계검증이 가장 필요한 대상, 개별과
+  동일. 목적 0건은 항상 제외, 적재율 극단은 4단계 COUNT
+  게이트 HOLD.
+- 근거: STAGE4-RUN-STAGE3-TARGETS-ONLY-AND-STAGE3-PAUSE-KEY_20261001.txt,
+  STAGE4-DELTA-EXCLUDED-ROWS-RERUN-AND-EXCLUSION-LABEL-UNIFY_20261001.txt,
+  BATCH-STAGE2-DEFAULT-INCLUDE-ALL_20261001.txt.
+
+### M493. 완료 - BATCH-STAGE5-ROWS-AND-DRILLDOWN
+- 5번 탭 행별 최신 결과 모으기(e53069d5 — 배치 소속
+  target만, 스키마 없는 옛 기록 제외), 행별 실행 시각
+  칸(f644dd1b), 행 선택 시 불일치 그룹 목록·그룹 저장
+  표시(c8cf8a7c), 탭별 "완료" ✓ 칸(c8cf8a7c, 2단계 렌더
+  순서 수정 bae71fc0 계열), 5번 탭 결과 출처
+  FULL_VALIDATION 우선(e2c46d6c).
+- 남은 것: 불일치 레코드(행 단위) 드릴다운 — 개별 조회
+  기능이 화면 상태를 읽는 구조라 "인자로 받는" 방식
+  리팩토링 필요(미착수).
+- 근거: BATCH-DONE-COLUMN-AND-STAGE5-DRILLDOWN-LIKE-SINGLE_20260930.txt,
+  BATCH-DONE-STAGE4-EXCLUDE-STAGE5-GROUPS-FIX_20260930.txt,
+  STAGE4-REUSE-RECHECK-AND-STAGE5-LATEST-PER-ROW_20261001.txt,
+  BATCH-UI-CATALOG-FOLLOWUP-AND-STAGE5-EXEC-TIME_20261001.txt.
+
+### M494. 완료 - NEW-BATCH-STAGE3-RACE
+- 새 배치 첫 3단계 결과가 자동 스냅샷 조회와 세대 토큰
+  충돌로 버려지던 문제(8c9ee8dd). 목적 0건 행 3번 탭 옛
+  스냅샷 노출 회귀(89b019af 원인) 수정(11a631e2).
+- 근거: BATCH-NEW-BATCH-STAGE3-ZERO-AND-PAUSE-FEEDBACK_20261001.txt,
+  STAGE3-TARGET-EMPTY-ROW-REGRESSION-AND-FLOW-ASSERTIONS_20261001.txt.
+
+### M495. 완료 - REUSE-MULTI-GB
+- GROUP BY ≥2축 캐스케이드 분기 재사용 배선(19dd25b4) —
+  1축은 원래 정상(진단 로그로 확인, ef7becdd).
+- 남은 것: 틀린 "known gap" 진단 로그 삭제(진행 중),
+  캐스케이드가 여러 세트로 쪼개질 때 재사용 불안정(설계
+  한계, 미착수).
+- 근거: STAGE4-REUSE-RECHECK-AND-STAGE5-LATEST-PER-ROW_20261001.txt,
+  MULTI-GB-REUSE-WIRING_20261001.txt.
+
+### M496. 완료 - AUTO-VERIFY-SCRIPT
+- 표준 자동 검증 scripts/dev_e2e/batch_full_flow_capture.py
+  — 격리 서버·접속 클릭·1~5단계 실제 클릭·탭별
+  단언(exit≠0)·--count-match-only·--policy-switch·
+  --repeat-stage4(bae71fc0 추가, 11a631e2 등 단언 보강).
+- 원칙: 일괄 화면 지침은 커밋 전 이 스크립트 통과.
+- 근거: STAGE3-TARGET-EMPTY-ROW-REGRESSION-AND-FLOW-ASSERTIONS_20261001.txt.
+
+### M497. 진행 - COUNT-SEMANTICS
+- 조사(ecd0fa8b, docs/AGGREGATE-MIGRATION-COUNT-SEMANTICS.md)
+  — 7유형 중 "그룹 없는 집계"만 원본 COUNT를 물리 테이블
+  전체로 세는 버그(거짓 CRITICAL), COUNT 생성 3곳 감지
+  로직 중복, DISTINCT 실행 차단.
+- 사용자 결정: 원본 COUNT = 이관 SELECT 결과 건수(비1:1),
+  판정 함수 하나로 통일, DISTINCT는 막을 정당한 이유
+  없으면 지원. 진행: COUNT-AGGREGATE-DETECTION-UNIFY-AND-
+  DISTINCT(코드 저장소 커밋 de00f9be 확인 — 완료보고 대기).
+- 근거: AGGREGATE-MIGRATION-COUNT-SEMANTICS-INVESTIGATION_20261001.txt.
+
+### M498. 결정 - TARGET-WHERE-EXCEL
+- 사용자 결정(2026-10-01): 일괄 엑셀에 "목적 WHERE"(선택)
+  열 추가 — 이관팀이 직접 입력, 비우면 목적 전체. 자동
+  추정 안 함. 1단계에서 문법·컬럼 존재 검사(오류 시 엄격
+  게이트). 목적 COUNT·통계 목적 쪽·불일치 조회에 적용,
+  개별 처리 함수 재사용. 같은 목적 테이블 여러 행은 목적
+  WHERE가 서로 다르면 허용(문자열 비교, 겹침 판단 안
+  함), 없거나 같으면 "중복" 오류.
+- 미착수(COUNT 수정 후).
+
+### M499. 진단 완료 - TABLE-NOT-FOUND-FLAKE
+- MV_C210 "존재하지 않는 테이블" 1회 — 6회 재현 실패,
+  원인 구조(카탈로그 조회 예외 삼킴) 확인 후 e15701fc로
+  구조 수정(6ce3e1b1 재현 스크립트).
+- 근거: STAGE4-TABLE-NOT-FOUND-FLAKE-DIAGNOSE_20261001.txt,
+  CATALOG-LOOKUP-FAILURE-DISTINGUISH-AND-UNSCOPED-QUERY-REMOVE_20261001.txt.
+
+### M500. 정리 - TEST-SUITE-HEALTH-2
+- 낡은 테스트 정리 1차(e8e6bb98 — 커밋 메시지 기준 UI
+  테스트 17건, 지침 기재 21건), 2차(bd1e2188 — 커밋
+  메시지 기준 63건, 지침 기재 64건 — 다른 세션 테스트
+  3개가 섞여 push된 사고 기록), 3차 진행 중.
+- 지연 import로 운영 DB 리다이렉트를 피하는 서비스 모듈
+  23개(conftest 구조 문제 — 운영 DB 쓰기 차단이 막아 피해
+  없음), 고정 %TEMP% DB 옛 인덱스 오염. M484 후속.
+- 근거: STALE-UI-TESTS-REFRESH_20261001.txt,
+  STALE-TESTS-REFRESH-2_20261001.txt.
+
+### M501. 운영 메모 - WORKFLOW-NOTES-20261001
+- ① 병행 터미널 4개 운용 시 지침마다 "수정 금지 파일" 명시
+  + 자기 hunk만 커밋 — 그래도 테스트 파일 섞임 사고 1건.
+  ② 병행 세션의 미커밋 변경이 다른 세션 검증에 섞여 보이는
+  사례(4단계 버튼 미표시, 5번 탭 9행) — 검증은 origin/main
+  커밋본 worktree 기준. ③ 추정→오진 재발 방지: 지난 보고
+  "0건/고장"이 측정 오류였던 사례 2건(DB 미접속, 동시성) —
+  장기 실측 픽스처(BAT_009 seed, 5천만 행) 확보. ④ Claude
+  Code 출력이 영어로 나오는 사례 지속 — 지침마다 한국어
+  명시.
