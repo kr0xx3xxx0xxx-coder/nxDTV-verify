@@ -13205,6 +13205,20 @@ THIRD-TRY_20260916.md
   WHERE가 서로 다르면 허용(문자열 비교, 겹침 판단 안
   함), 없거나 같으면 "중복" 오류.
 - 미착수(COUNT 수정 후).
+- 갱신(2026-10-01 저녁): ①~④ 구현 완료(0bfd5332 엑셀
+  별칭·화면 표시, dfce7d98 1단계 "목적 WHERE 오류" 검사
+  (문법·컬럼·0행 실행), b061391d 실행 대상·2단계 COUNT·
+  4단계 통계·5번 탭 저장에 target_where 전달, 1e69078b
+  업로드 양식 "목적 WHERE" 열·예시). 수정 전 결함: COUNT
+  상세 창은 WHERE 붙은 SQL을 보여주면서 실제 실행은
+  WHERE 없이 함("표시 SQL ≠ 실제 실행") — 해소. 한계: 0행
+  검사라 형 변환 오류(숫자 컬럼='abc')는 1단계에서 못
+  잡고 2단계 COUNT 오류로 드러남. ⑤(같은 목적 테이블 +
+  서로 다른 목적 WHERE 여러 행 허용)는 사용자 결정
+  (2026-10-01 저녁)으로 "보류" — 현재는 목적 WHERE가
+  달라도 같은 목적 테이블 2행은 "중복" 오류. 실제 필요
+  사례가 나오면 착수. 대안: 같은 목적 테이블을 나눠
+  검증할 땐 엑셀을 나눠 다른 배치로 업로드.
 
 ### M499. 진단 완료 - TABLE-NOT-FOUND-FLAKE
 - MV_C210 "존재하지 않는 테이블" 1회 — 6회 재현 실패,
@@ -13223,6 +13237,9 @@ THIRD-TRY_20260916.md
   없음), 고정 %TEMP% DB 옛 인덱스 오염. M484 후속.
 - 근거: STALE-UI-TESTS-REFRESH_20261001.txt,
   STALE-TESTS-REFRESH-2_20261001.txt.
+- 갱신(2026-10-01 저녁): 3차 정리(b3437efb — 일괄 테스트
+  131파일 실패 0·오류 0), 4차·conftest 지연 import
+  리다이렉트 보강 진행 중.
 
 ### M501. 운영 메모 - WORKFLOW-NOTES-20261001
 - ① 병행 터미널 4개 운용 시 지침마다 "수정 금지 파일" 명시
@@ -13234,3 +13251,73 @@ THIRD-TRY_20260916.md
   장기 실측 픽스처(BAT_009 seed, 5천만 행) 확보. ④ Claude
   Code 출력이 영어로 나오는 사례 지속 — 지침마다 한국어
   명시.
+
+### M502. 보류 - SAME-TARGET-MULTI-ROW-KEY
+- 같은 목적 테이블을 서로 다른 목적 WHERE로 한 배치에
+  여러 행 허용하려면 결과 식별 키를 target_table →
+  row_id(또는 target_table+정규화 목적 WHERE)로 바꿔야
+  함. target_table을 키로 쓰는 곳(BATCH-TARGET-WHERE-
+  EXCEL-COLUMN 파트0 조사표): batch_wrapper_result_store
+  (get_latest_wrapper_results·get_latest_facade_count·
+  get_latest_mismatch_group_detail), execution_reuse_
+  lookup, group_current_freshness_service, batch_delta_
+  rerun_service(_current_items_by_target — 두 번째 행이
+  조용히 실행에서 빠짐), candidate_snapshot_store,
+  stage5_group_store, policy_target_table_service,
+  upload_audit_store. DTV_run_item·3단계 계획은 row_id
+  기준(영향 없음). 사용자 결정: 보류, 실제 필요 사례가
+  나오면 착수.
+
+### M503. 진행 - POLICY-SWITCH-STAGE5-GROUPS-ZERO
+- 표준 스크립트 --policy-switch 2회차에서
+  MV_ORA_TEST_TGT(GROUP BY 3축) 5번 탭 불일치 그룹 0 —
+  기존 결함(HEAD에서도 동일), 오전엔 통과. 추정: 다축
+  재사용 배선(19dd25b4)의 재사용 결과에 불일치 그룹
+  원본이 실리지 않음. 진행: 지침 POLICY-SWITCH-STAGE5-
+  GROUPS-ZERO-FIX.
+
+### M504. 결정·진행 - REUSE-DATA-CHANGE-SIGNAL
+- 사용자 결정(2026-10-01): 재사용 조건에 DB의 테이블별
+  변경 집계를 추가 — 쿼리 같음 + COUNT 같음 + 원본(참조
+  테이블 전부)·목적의 입력·수정·삭제 누적 수가 원래
+  실행 시점 대비 증가 없음 + 확인 가능(모니터링 꺼짐·
+  권한 없음·통계 수집으로 초기화되면 확인 불가 → 재실행)
+  + 재사용 최대 기간 이내. 적용: 일괄 4단계·개별
+  원클릭(공용 재사용 판정 한 곳), 개별 수동 단계별
+  실행은 재사용 없음(결정). CDC는 고객 DB 설정 변경이
+  필요해 부적합.
+- 조사(e281dfc8, docs/REUSE-DATA-CHANGE-SIGNAL.md):
+  PostgreSQL pg_stat_user_tables 즉시 사용 가능, Oracle
+  ALL_TAB_MODIFICATIONS는 0행(통계 수집 후 변경 없음
+  의미일 수 있음 — LAST_ANALYZED와 함께 판단, 반영 지연
+  위험) → NXDNP 안 TST_ 접두어 실험 테이블에서만 쓰기
+  실험 진행 중(REUSE-CHANGE-SIGNAL-ORACLE-EXPERIMENT-
+  TST).
+- 사용자 운영 맥락: 이관은 한 번에, 검증 기간엔 원본·
+  목적 시스템 정지가 보통 — 위험은 "한참 뒤 재사용".
+
+### M505. 운영 규칙 - ORACLE-TEST-WRITE-TST-PREFIX
+- 사용자 결정(2026-10-01): Oracle 테스트에서 쓰기
+  (DML/DDL/통계 수집)가 필요한 실험은 NXDNP 안에 TST_
+  접두어 테이블만 만들어 사용, 나머지 NXDNP 테이블은
+  SELECT만. 실험 후 DROP.
+
+### M506. 완료 - INDIVIDUAL-GROUP-DIALECT-STALE
+- 개별검증 그룹 드롭다운이 DB 접속 전(기본값
+  PostgreSQL) 1회 캐시돼 Oracle 접속 후에도 같은 방언
+  그룹을 "방언 불일치"로 비활성 처리하던 실제 화면
+  결함 수정(776d4833). 개별 수동 단계별 실행은 재사용
+  대상 아님 확인(설계).
+
+### M507. 완료 - COUNT-AGGREGATE-DISTINCT
+- 그룹 없는 집계 원본 COUNT를 이관 SELECT 결과
+  건수로(5천만→1 실측), 판정 함수
+  services/migration_select_shape.py로 통일, DISTINCT
+  지원(de00f9be, 13ebb818).
+
+### M508. 메모 - DUPLICATE-SESSION-INCIDENT
+- 같은 지침(BATCH-TARGET-WHERE-EXCEL-COLUMN)이 두
+  터미널에서 동시에 돌아 작업트리 변경이 섞임 — 한
+  세션 중단·주인 세션이 git diff 대조로 채택(인계
+  문서는 실제로 생성되지 않았음). 재발 방지: 지침 1개
+  = 터미널 1개.
