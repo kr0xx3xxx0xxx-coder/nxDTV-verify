@@ -13119,6 +13119,11 @@ THIRD-TRY_20260916.md
 - 갱신(2026-10-01): 테스트·격리 서버가 logs\server_*.pid
   약 539개, scratchpad\wt_* worktree 다수를 추가로 남김 —
   정리 대상에 포함.
+- 갱신(2026-10-02): 완료(78188906) — 보관 커밋 22파일, 1,599건
+  (약 261MB) 삭제, DB 백업 4개 X:\xDataNexPro\_backup\nxDTV-db\
+  이동(바이트 대조), 남은 untracked 3건(의도). 이후 이전 세션
+  worktree 5개·잔존 격리 서버(8491 — 집계 조사 스크립트가 끄지
+  못함) 정리(STALE-WORKTREES-AND-8491-CLEANUP, M515 참고).
 
 ### M491. 운영 메모 - WORKFLOW-NOTES-20260930-EVENING
 - ① 테스트 서버 잔존 확인법: netstat -ano | findstr
@@ -13240,6 +13245,11 @@ THIRD-TRY_20260916.md
 - 갱신(2026-10-01 저녁): 3차 정리(b3437efb — 일괄 테스트
   131파일 실패 0·오류 0), 4차·conftest 지연 import
   리다이렉트 보강 진행 중.
+- 갱신(2026-10-02): 4차(c4f1b3cf — conftest가 services·routes
+  518개 모듈을 세션 시작 시 일괄 리다이렉트, 18개 고정 목록의
+  69% 누락 해소), setUpClass 단계 리다이렉트(d5ae91d7 — 세션
+  단위 적용, 일괄 133파일 정순·역순 실패 0). 남은 기존 실패:
+  setUpClass 보유 18개 파일 42건, 관련 묶음 19건.
 
 ### M501. 운영 메모 - WORKFLOW-NOTES-20261001
 - ① 병행 터미널 4개 운용 시 지침마다 "수정 금지 파일" 명시
@@ -13275,6 +13285,12 @@ THIRD-TRY_20260916.md
   재사용 배선(19dd25b4)의 재사용 결과에 불일치 그룹
   원본이 실리지 않음. 진행: 지침 POLICY-SWITCH-STAGE5-
   GROUPS-ZERO-FIX.
+- 갱신(2026-10-02): 완료(a2f5bf85) — 원인은 재사용 결과 저장
+  시 mismatch_group_rows를 통째로 빼고 복원 시 빈 목록으로
+  만들던 것. 다축만이 아니라 1축 재사용도 처음부터 그룹 0
+  이었고, 단언이 MV_ORA_TEST만 봐서 드러나지 않았음. 1축·
+  다축 공용 처리, 2회차 그룹·재사용 표시 복원, "2회차
+  불일치 테이블 그룹 ≥1" 단언 추가.
 
 ### M504. 결정·진행 - REUSE-DATA-CHANGE-SIGNAL
 - 사용자 결정(2026-10-01): 재사용 조건에 DB의 테이블별
@@ -13295,6 +13311,23 @@ THIRD-TRY_20260916.md
   TST).
 - 사용자 운영 맥락: 이관은 한 번에, 검증 기간엔 원본·
   목적 시스템 정지가 보통 — 위험은 "한참 뒤 재사용".
+- 갱신(2026-10-02): 완료(77135af6) — 공용 모듈
+  services/execution_reuse_change_signal.py 한 곳에서
+  판정(호출부 3곳은 함수 1개 호출), Oracle
+  ALL_TAB_MODIFICATIONS·PostgreSQL pg_stat_user_tables
+  어댑터, 그 외 DBMS는 확인 불가→재실행. 판정 코드
+  REUSE_OK_NO_CHANGE/RERUN_CHANGED/RERUN_UNVERIFIABLE/
+  RERUN_TOO_OLD. 전역설정 3개(재사용 최대 기간 기본 7일,
+  확인 불가 시 재실행 기본, Oracle FLUSH 기본 꺼짐).
+  실험(772c39df): UPDATE 후 약 60초 내 반영, FLUSH는 asis
+  권한 없음, TRUNCATE는 누적+TRUNCATED. 사용자 승인으로
+  "두 시점 모두 행 없음 + LAST_ANALYZED 같음 +
+  MONITORING=YES"는 변경 없음(재사용)으로 판정(지침 확정
+  규칙대로). 검증 중 결함 2건 추가 수정(재사용 기간 0일이
+  7일로 바뀌던 0-or-기본값 버그, 배치 표시 필드 누락). 남은
+  것: 개별 원클릭 2회 실화면·상세 문구 캡처
+  (COUNT-REUSE-STAGE2-AND-STAGE4-NO-RECOUNT 지침, M512
+  참고).
 
 ### M505. 운영 규칙 - ORACLE-TEST-WRITE-TST-PREFIX
 - 사용자 결정(2026-10-01): Oracle 테스트에서 쓰기
@@ -13321,3 +13354,69 @@ THIRD-TRY_20260916.md
   세션 중단·주인 세션이 git diff 대조로 채택(인계
   문서는 실제로 생성되지 않았음). 재발 방지: 지침 1개
   = 터미널 1개.
+
+### M509. 완료 - BATCH-GRID-TABLE-NAME-CELL-AND-COLUMN-ORDER
+- 1~5번 탭(5번 행 상세·[검증 결과 상세] 메뉴 포함)
+  목적→원본 순서 통일, 테이블명 옆 한글 테이블명(DB
+  코멘트 — Oracle ALL_TAB_COMMENTS, PostgreSQL
+  pg_description, 배치 단위 1쿼리 + 10분 캐시, 말줄임 +
+  마우스 설명), 상태 칸 한 줄·최소 너비, 4번 탭 COUNT
+  짧은 문구 공용 사전(59603762, f1b7de2f, a359acb5).
+  BAT_008은 코멘트가 없어 영문만 표시(정상).
+- 근거: G:\내 드라이브\nxDTV-verify\reports\
+  BATCH-GRID-TABLE-NAME-CELL-AND-COLUMN-ORDER_20261001.md
+
+### M510. 완료 - ORACLE-SPACE-CLEANUP
+- Oracle 테스트 DB는 Oracle 26ai Free(12GB 사용자
+  데이터 한도 — 세그먼트 합계 기준, 파일 축소 불필요).
+  삭제 45건(asis 21·tobe 24) + 휴지통 비우기, 여유
+  asis 3.63→4.08GB, tobe 3.17→3.62GB. 4건은 scratchpad
+  샘플 스크립트 참조로 건너뜀.
+- 사고: 복구용 DDL을 조회만 하고 파일 저장 누락 — asis
+  21건은 docs/schema_survey_20260917.json에 구조 남음,
+  tobe 24건은 구조 기록 없음(미사용 실험 잔재라 영향
+  낮음). MV_SCATTER50M_NUMPK 쌍(asis 3.30GB·tobe
+  3.86GB)은 사용자 결정으로 유지.
+- 근거: G:\내 드라이브\nxDTV-verify\reports\
+  ORACLE-SPACE-CLEANUP-INVENTORY_20261001.md,
+  ORACLE-SPACE-CLEANUP-EXECUTE_20261001.md
+
+### M511. 결정 - LARGE-SCALE-TEST-ON-POSTGRESQL
+- 사용자 결정(2026-10-01): Oracle Free는 "Oracle 동작
+  확인용"으로 유지, 1억 행급 대용량 검증은 사내
+  PostgreSQL에서. Oracle EE는 OTN 개발자 라이선스
+  범위(개인 개발·테스트, 공용 테스트 DB·사내 업무
+  사용은 위반 소지) 문제로 보류.
+
+### M512. 결정·진행 - COUNT-REUSE-STAGE2-AND-STAGE4
+- 사용자 결정(2026-10-01): 일괄은 2~5단계 논스톱 —
+  2단계 COUNT는 "COUNT 쿼리 같음 + DB 데이터 변경 없음 +
+  기존 결과 있음"이면 재사용, 아니면 실행. 4단계는
+  COUNT를 다시 세지 않고 2단계 값 사용(COUNT 게이트·
+  재사용 재확인 모두), 2단계 이후 변경 감지 시 경고만.
+  4단계 통계 재사용은 쿼리·COUNT·변경 신호 모두 같으면
+  재사용. 1·3단계는 매번 실행(3단계는 수 초 이내라
+  재사용 이득 적음). 진행:
+  COUNT-REUSE-STAGE2-AND-STAGE4-NO-RECOUNT.
+- 근거: G:\내 드라이브\nxDTV-verify\reports\
+  COUNT-REUSE-STAGE2-AND-STAGE4-NO-RECOUNT_20261002.md
+
+### M513. 결정 - INDIVIDUAL-MANUAL-NO-REUSE
+- 개별 수동 단계별 실행은 재사용 없음(사용자가 직접
+  누른 실행은 항상 실제 실행). 재사용은 원클릭
+  전체검증·일괄 공식 경로만.
+
+### M514. 대기 - STAGE5-DETAIL-LIKE-SINGLE-AND-RECORD-DRILLDOWN
+- 5번 탭 행 상세의 반복 요약표 제거, 개별 5단계 부품
+  재사용(항목별 원본·목적·차이, 반올림 표시), 불일치
+  레코드(행 단위) 드릴다운 — 개별 레코드 조회를 "인자로
+  받는" 방식으로 공용화. 제목 "불일치 항목명 미보존"
+  문구 정정. COUNT-REUSE 완료 후 착수.
+
+### M515. 개선(낮음) - PROBE-ISOLATED-SERVER-LEAK
+- scripts/dev_e2e/aggregate_migration_count_probe.py가
+  격리 서버를 종료하지 않고 끝나 8491이 약 14시간 잔존.
+  다음에 이 스크립트를 쓸 때 서버 종료(context manager)
+  보강.
+- 근거: G:\내 드라이브\nxDTV-verify\reports\
+  STALE-WORKTREES-AND-8491-CLEANUP_20261002.md
