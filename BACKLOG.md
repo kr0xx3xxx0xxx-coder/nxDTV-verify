@@ -12600,6 +12600,12 @@ THIRD-TRY_20260916.md
   10281/10293/10419). 삭제는 사용자 확인 후.
 - 갱신(2026-10-01): #batchCmdBar 일괄 전용 옛 막대 코드
   제거 완료(ac01dfb6) — 사용자 결정: 숨김이 아니라 제거.
+- 갱신(2026-10-02 저녁): 쓰지 않는 코드 추가 —
+  services/validation_job_core.py(운영 미사용 옛 일괄 경로 —
+  parity 테스트 3건 skip, 77f88c66), 본문 #runBtn(하단바
+  활성 시 CSS 숨김 — 스피너 신호로 계속 쓰여 유지),
+  ui/js_single_run_standard.py(고급 옵션 facade 배선,
+  미노출). 삭제는 사용자 확인 후.
 
 ### M449. 버그(미착수) - DEV-E2E-SERVER-HELPER-DEFECTS
 - scripts/dev_e2e/_server_launch_helper.py: ① worktree에서
@@ -13250,6 +13256,11 @@ THIRD-TRY_20260916.md
   69% 누락 해소), setUpClass 단계 리다이렉트(d5ae91d7 — 세션
   단위 적용, 일괄 133파일 정순·역순 실패 0). 남은 기존 실패:
   setUpClass 보유 18개 파일 42건, 관련 묶음 19건.
+- 갱신(2026-10-02 저녁): 5차(195ace1b — 49건 정리), 회귀
+  의심 10건 조사(d536ace0) → 실결함 3건 수정(5a95fa5c),
+  낡은 테스트(77f88c66). 전체 스위트 기준 기존 실패 약
+  376건(df720ec9 실행 — 1시간 11분), 화면 관련 330파일
+  묶음 기존 실패 168건 — 큰 정리 필요(수정 대상, M531).
 
 ### M501. 운영 메모 - WORKFLOW-NOTES-20261001
 - ① 병행 터미널 4개 운용 시 지침마다 "수정 금지 파일" 명시
@@ -13400,11 +13411,32 @@ THIRD-TRY_20260916.md
   COUNT-REUSE-STAGE2-AND-STAGE4-NO-RECOUNT.
 - 근거: G:\내 드라이브\nxDTV-verify\reports\
   COUNT-REUSE-STAGE2-AND-STAGE4-NO-RECOUNT_20261002.md
+- 갱신(2026-10-02 저녁): 완료(225c2085·6fb7f6d0·44211e00·
+  c2336e74) — 4단계는 테이블당 COUNT 4회(게이트 2 + 재사용
+  재확인 2)에서 0회, 2단계 2회차 COUNT 0회. BAT_009(5천만
+  행) 2단계 2회차 57.7→5.9초, 4단계 171→119초. 2단계 이후
+  변경 감지 시 경고만. 사실 확인: 2번 탭 "강제 재실행"
+  패널은 4단계용(force_rerun_ids).
 
 ### M513. 결정 - INDIVIDUAL-MANUAL-NO-REUSE
 - 개별 수동 단계별 실행은 재사용 없음(사용자가 직접
   누른 실행은 항상 실제 실행). 재사용은 원클릭
   전체검증·일괄 공식 경로만.
+- 갱신(2026-10-02 저녁): 결정 변경(2026-10-02) — 개별·일괄
+  통일: 재사용은 2단계(COUNT)·4단계(통계)만, 개별·일괄 모두
+  "같은 쿼리 + 데이터 변경 없음 + 기존 결과 있음"이면
+  재사용. "☐ 재사용 없이 새로 실행" 체크박스를 공통 하단바
+  실행 버튼 옆에(1단계 원클릭·2단계·4단계, 이번 실행만,
+  개별·일괄 공통 — 일괄 2번 탭 "강제 재실행" 패널 대체).
+  원클릭은 불일치 저장 항상, 수동은 체크박스대로. 구조
+  조사 완료(f4add35e, docs/SINGLE-BATCH-SAVE-REUSE-UNIFY.md —
+  개별 저장 3계열: A 확정 저장(그룹 필수)·B 불일치
+  자동저장(4단계 체크박스, 그룹 불필요)·C 불일치 수동저장).
+  세부 결정 5개 대기(원클릭 저장 범위, 수동 체크박스 범위,
+  수동 재사용 적용, 그룹 없을 때 재사용 기록 위치, 일괄
+  강제 재실행 패널 대체 수용). 구현 단계 A(COUNT 재사용 +
+  체크박스) → B(원클릭 저장·재사용, 6월 §6 결정 변경) →
+  C(수동 체크박스·패널 대체).
 
 ### M514. 대기 - STAGE5-DETAIL-LIKE-SINGLE-AND-RECORD-DRILLDOWN
 - 5번 탭 행 상세의 반복 요약표 제거, 개별 5단계 부품
@@ -13412,6 +13444,10 @@ THIRD-TRY_20260916.md
   레코드(행 단위) 드릴다운 — 개별 레코드 조회를 "인자로
   받는" 방식으로 공용화. 제목 "불일치 항목명 미보존"
   문구 정정. COUNT-REUSE 완료 후 착수.
+- 갱신(2026-10-02 저녁): 완료(81acd718·269bceda·3f1dacda) —
+  반복 요약표 제거, 개별 5단계 부품 재사용, 그룹 클릭 →
+  불일치 레코드(공용 함수 — 화면 상태 대신 인자, 접속은
+  서버가 프로필로 해석).
 
 ### M515. 개선(낮음) - PROBE-ISOLATED-SERVER-LEAK
 - scripts/dev_e2e/aggregate_migration_count_probe.py가
@@ -13420,3 +13456,151 @@ THIRD-TRY_20260916.md
   보강.
 - 근거: G:\내 드라이브\nxDTV-verify\reports\
   STALE-WORKTREES-AND-8491-CLEANUP_20261002.md
+- 갱신(2026-10-02 저녁): 완료(195ace1b — 종료 보장 구조).
+  근거: STALE-TESTS-REFRESH-5-AND-PROBE-SERVER-LEAK_20261002.txt.
+
+### M516. 완료 - QUERY-TIMEOUT-SCALED-AND-STOP-CANCEL
+- 쿼리 1개당 행 수 비례 시간 제한(3ff61204·114f5639·
+  cebfae97) — 1단계 카탈로그 60초 고정, 2단계 COUNT 1분+
+  1천만당 1분(상한 30분), 3단계 2분 고정, 4단계 통계 1분+
+  1천만당 5분(상한 3시간), 5단계 1분+1천만당 2분(상한
+  60분), 전수검증 5분+1천만당 10분(상한 6시간), 행 수
+  모르면 상한. 일괄 ■ 중단 시 실행 중 쿼리 실제 취소
+  (5천만 행 약 2초). 배치 전체 상한 기본 7200→0(df720ec9)
+  — 운영 DB에 7200이 저장돼 있으면 화면에서 0으로 바꿔야
+  함.
+- 근거: QUERY-TIMEOUT-SCALED-AND-STOP-CANCEL_20261002.txt,
+  BATCH-OVERALL-TIMEOUT-DEFAULT-ZERO_20261002.txt.
+
+### M517. 완료 - REUSE-CHANGE-SIGNAL-DDL-IDENTITY
+- 재생성·데이터 재작성·구조 변경 감지(219ea89c) — Oracle
+  OBJECT_ID·DATA_OBJECT_ID·CREATED·LAST_DDL_TIME,
+  PostgreSQL oid·relfilenode. 원본·목적 모두. COMMENT·
+  GRANT도 LAST_DDL_TIME을 바꿔 재실행됨(안전한 쪽 — 수용).
+- 근거: REUSE-CHANGE-SIGNAL-DDL-IDENTITY_20261002.txt.
+
+### M518. 완료 - REGRESSION-SUSPECTS-FIX
+- 저장 실패 배지, 사용중 배지 스타일, DB 프로필 N:1
+  안내문(5a95fa5c).
+- 근거: REGRESSION-SUSPECTS-FIX-AND-STALE-TESTS_20261002.txt.
+
+### M519. 완료 - PG-1E8-FIXTURE
+- 사내 PostgreSQL tst_large.src_1e8(1억)·tgt_1e8
+  (99,001,000 — 1% 누락·금액 1만·문자 2천·목적만
+  1천)(625e9e32), UNLOGGED, 약 33분·약 23GB. 서버: Rocky
+  Linux, PG16 Docker 2개, /home 여유 약 57GB, 메모리
+  3.6GB(MariaDB 공존).
+- 근거: PG-1E8-FIXTURE-BUILD_20261002.txt.
+
+### M520. 완료 - SINGLE-ONECLICK
+- 개별 "▶▶ 끝까지 자동 실행" 재노출(60134d06 — 7월
+  bb21584c에서 하단바 handler 변경으로 진입점이 사라졌던
+  것, 폐기 결정 없었음), 중단 시 서버 쿼리 취소(0.2~0.35초)·
+  중단 직후 재실행 409 해소(3e6d0218), 소형 테이블 4·5단계
+  무효 표시 해소(58f09e08 — 표시 반영).
+- 근거: SINGLE-ONECLICK-FULLRUN-RESTORE_20261002.txt,
+  SINGLE-ONECLICK-STOP-CANCEL-AND-SMALL-TABLE-FIX_20261002.txt.
+
+### M521. 결정 - ORACLE-EE-AND-LARGE-SCALE
+- Oracle EE는 OTN 라이선스 범위 문제로 보류, Oracle Free는
+  동작 확인용, 1억 행은 사내 PostgreSQL(M511 참고).
+
+### M522. 결정·대기 - BATCH-GRID-RUN-MODE-DURATION-ROWCLICK
+- 1~4번 탭 "소요시간(HH:MM:SS) | 실행방식(재사용/신규) |
+  완료", 5번 탭 "실행일시 | 실행방식 | 완료", "상세" 칸
+  제거·행 클릭 펼침(2번 탭은 COUNT SQL·건수·소요·제한값),
+  재사용 덧붙임은 실행방식 칸으로. 지침 작성됨(원 지침+
+  AMEND1~3 합침), 신규 배치 결함(M526) 수정 후 실행.
+
+### M523. 보류 - SINGLE-BATCH-CROSS-REUSE
+- 개별·일괄 결과를 서로 재사용 — 저장소가 달라 큰 작업.
+  사용자 결정: 나중에.
+
+### M524. 사고 - PROD-8000-KILLED-BY-SESSION
+- 2026-10-02 21:10~21:16 무렵 PG-1E8-FULL-VALIDATION-RUN
+  세션이 격리 서버 정리 중 python 프로세스를 명령줄
+  문자열("web_server.py")로 찾아 taskkill /F — 운영
+  8000(PID 29692)까지 종료. 사용자가 직접 재기동(PID 4484).
+- 재발 방지(모든 지침 공통 금지 문구): 명령줄 문자열로
+  프로세스 종료 금지, 자기가 띄운 PID·포트만, 종료 전
+  netstat 리스닝 포트 확인, 8000 절대 종료 금지, 다른 세션
+  것은 보고만.
+- 근거: PG-1E8-FULL-VALIDATION-RUN_20261002.txt.
+
+### M525. 운영 메모 - WORKFLOW-NOTES-20261002
+- ① 같은 파일을 고치는 지침에 실행 전 변경이 생기면
+  AMEND를 쌓지 말고 합친 지침으로 다시 발행(27번 — GRID
+  AMEND 3회 누적 사례). ② 검증은 과거 PASSED 픽스처만
+  재사용하지 말고 "새 업로드부터" 시나리오 포함(신규 배치
+  결함 사례). ③ Claude Code가 스스로 예약한 반복 확인
+  (/loop·wakeup)이 끝난 작업에서 다시 실행되는 사례 2건 —
+  무해하나 혼란. ④ 지침에서 금지한 전체 테스트 스위트를
+  세션이 임의로 실행한 사례(1시간 11분) — 결과는
+  유용했으나 금지 문구 재강조.
+
+### M526. 버그(최우선) - NEW-BATCH-DB-VALIDATION-CONN-AND-SSL
+- 새로 업로드한 배치는 1단계 쿼리 검토의 DB 검증이
+  실행되지 않아(db_checked=false, NOT_RUN — "DB 프로필/
+  검증 경로" 접속 후 숨은 연결 폼이 비는 것으로 추정)
+  3단계 DB_VALIDATION_FAILED 전원 제외 → 4·5단계 진입
+  불가(사내 PostgreSQL 신규 배치 2회 재현, Oracle 신규
+  배치 해당 여부 미확인). 업로드 자동 DB 구조 확인은
+  sslmode=disable을 무시하고 SSL 요구("server does not
+  support SSL, but SSL was required"). 과거 PASSED
+  배치(BAT_008)만 써 온 검증의 사각지대. 진행:
+  NEW-BATCH-DB-VALIDATION-CONN-AND-SSL-FIX.
+- 근거: PG-1E8-FULL-VALIDATION-RUN_20261002.txt.
+
+### M527. 대기 - PG-1E8-FULL-VALIDATION-RERUN
+- 1억 행 일괄 1~2단계만 실측(c9ba7a69 — COUNT 약 201초,
+  기대값 일치). M526 수정 후 3~5단계(4단계 통계 소요·
+  병목, 5단계 그룹·레코드), 2회차 재사용, PG ■ 중단 실측
+  필요.
+- 근거: PG-1E8-FULL-VALIDATION-RUN_20261002.txt.
+
+### M528. 버그(중) - ONECLICK-RECONFIRM-INPUT-MISMATCH
+- 원클릭 중 화면이 따로 돌리는 3단계 후보 재확정
+  (/validation-sets/preview, 요청 시점 화면 체크
+  user_selected=[])과 서버 facade 재확정(None)의 입력이
+  달라 같은 컬럼(MV_GB01UI CAT_CD)이 화면은
+  MANUAL_REQUIRED, 서버는 기본추천으로 갈림. 58f09e08은
+  실행 컬럼을 화면에 체크·사유 표시로 덮은 것(배지는
+  "수동확인"으로 남음). 근본: 원클릭 중 화면 재확정 생략
+  또는 두 재확정 입력 일치. 저장·재사용 통일 작업(M513)
+  때 함께.
+- 근거: SINGLE-ONECLICK-STOP-CANCEL-AND-SMALL-TABLE-FIX_20261002.txt.
+
+### M529. 버그 의심(중, 미실측) - ONECLICK-THEN-STAGE4-MANUAL-GATE
+- 화면 비동기 재확정이 workflow_token의
+  groupby_candidates를 되저장하므로, 원클릭 후 4단계만
+  수동 재실행하면 게이트가 CAT_CD를 "수동확인"으로 보고
+  막을 가능성(추정). M528과 함께 확인.
+
+### M530. 개선(낮음) - ONECLICK-CANCEL-GAPS
+- 원클릭 취소 토큰이 1단계 분석(analyze)·후보 재확정 샘플
+  조회 구간에는 미배선 — 그 구간 중단 시 해당 조회가 끝난
+  뒤 멈춤(대개 수 초). 1억 행에서 샘플 조회가 길면 의미
+  있음.
+
+### M531. 개선(중) - TEST-SUITE-BIG-CLEANUP
+- 전체 기존 실패 약 376건(화면 관련 168건 포함) — 회귀를
+  잡는 힘이 약해진 상태. 큰 작업들 이후 일괄 정리(M500
+  참고).
+- 근거: BATCH-OVERALL-TIMEOUT-DEFAULT-ZERO_20261002_failed_tests.txt.
+
+### M532. 개선(낮음) - STAGE5-SCALE-ESTIMATE-PER-ROW
+- 일괄 5번 탭 "통계검증 규모" 칸이 행마다 "산정 전" 고정
+  — 개별용 단일 저장 공간 구조라 일괄은 테이블별로 담는
+  재설계 필요(2026-09-30 보고, 보류 상태).
+
+### M533. 기능(대기) - BATCH-AUTO-RUN-STAGE2-TO-5
+- 일괄 "2단계부터 끝까지 자동 진행"(논스톱) — 개별 원클릭
+  경험 반영. 개별 원클릭 경로가 아니라 기존 일괄 2→4단계
+  경로를 묶어야 재사용 유지, 일괄은 비동기 job·stopFn
+  경로로 중단(SINGLE-ONECLICK-FULLRUN-RESTORE 보고의 설계
+  메모). 1억 행 재검증(M527) 결과를 보고 설계.
+
+### M534. 개선(조건부) - STAGE3-PROFILE-REUSE
+- 1억 행 재검증(M527)에서 3단계(후보 추천 샘플·profile)가
+  느리면 "같은 쿼리 + 데이터 변경 없음이면 이전 프로필
+  재사용" 추가(변경 신호 장치 재사용). 측정 전엔 착수 안 함.
