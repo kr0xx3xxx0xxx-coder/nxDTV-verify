@@ -13599,11 +13599,22 @@ THIRD-TRY_20260916.md
   경로를 묶어야 재사용 유지, 일괄은 비동기 job·stopFn
   경로로 중단(SINGLE-ONECLICK-FULLRUN-RESTORE 보고의 설계
   메모). 1억 행 재검증(M527) 결과를 보고 설계.
+- 갱신(2026-10-03): 결정 갱신 — 일괄 1단계(쿼리 검토·
+  중복·오류 정리)는 수동, 자동 진행 시작은 2번 탭(COUNT
+  부터), 실행 옵션 상자는 2번 탭 편집·3·4번 탭 읽기
+  전용(3bd5af6e로 구현 중), 진행 표시는 탭 자동 이동
+  대신 별도 "현황 > 실행 모니터링" 화면(실행 중 배치·
+  단계·테이블별 진행·경과·남은 예상·일시정지/중단, 최근
+  완료 → 5번 탭). 개별은 지금 구조 유지(1단계에서 끝까지
+  자동 실행, 옵션 1단계).
 
 ### M534. 개선(조건부) - STAGE3-PROFILE-REUSE
 - 1억 행 재검증(M527)에서 3단계(후보 추천 샘플·profile)가
   느리면 "같은 쿼리 + 데이터 변경 없음이면 이전 프로필
   재사용" 추가(변경 신호 장치 재사용). 측정 전엔 착수 안 함.
+- 갱신(2026-10-03): 1억 행 3단계 31.55초(PG-1E8-RERUN-V2),
+  2회차 0.04초(기존 24시간 프로필 캐시) — 조건부 보류
+  유지.
 
 ### M535. 진행 - CHAIN-20261002
 - 남은 일 4묶음 동시 진행.
@@ -13623,6 +13634,12 @@ THIRD-TRY_20260916.md
   ④ BACKLOG-AND-DESIGN-DOCS-V2: 이 지침 자체(파트1 BACKLOG
   반영 + 파트2 설계 문서).
 - 근거: BACKLOG-AND-DESIGN-DOCS-V2_20261002.txt.
+- 갱신(2026-10-03): 완료 — CHAIN-A-UI-AND-FEATURE-FIXES-V2
+  파트1~5(69a9c4c1·497c5da7·82feff51·753356dc·1e2ca65b·
+  971f781d·194a7190), PG-1E8-RERUN-AND-STAGE-TIMING-V2
+  (1~5단계 16/16), STALE-TESTS-BIG-CLEANUP-V2(f72dc209·
+  f68e3966·1a528e74 — 교차오염 근본원인 _DB_PATH 미복원),
+  BACKLOG-AND-DESIGN-DOCS-V2(277d6c38).
 
 ### M536. 운영 규칙 - REPORT-AND-AUTO-VERIFY-RULE
 - 사용자 결정(2026-10-02) — 모든 지침 완료보고에 항목마다
@@ -13634,3 +13651,69 @@ THIRD-TRY_20260916.md
   검증하고 실행 결과 원문을 보고서에 포함. 못 하면 사유와
   "미완료"로 명시.
 - 근거: BACKLOG-AND-DESIGN-DOCS-V2_20261002.txt.
+
+### M537. 완료 - QUERY-AND-DATA-FIXES-20261003
+- PG 5단계 레코드 조회 스키마·대소문자(a09993f0 — Oracle도
+  접속 계정=소유자 우연으로 동작하던 것), 다중 세트
+  재사용 결함(4ca78526 — 미리보기 SQL 지문 1개 저장 →
+  세트별), 1억 행 2회차 4단계 207.84→4.58초(f582e298
+  확인), 다중 세트 시간 단언 허용치·원 실행 소요
+  (842161da), 원 실행 소요를 소요시간 칸 기준으로
+  (f7fb74c8), 확정 저장 WAL 막힘 아님(38c773aa — 원자성
+  가드는 6/27부터 운영 경로 미사용), 5번 탭 화면 대기
+  한도·목적에만 있는 행 표시(00e0ab27 — 세션 02 목적
+  단독 드릴다운은 9월 엔진 정리 때 끊긴 죽은 코드였음),
+  깨진 테스트·회귀 의심(165c3efb), 테스트 2차(13커밋 —
+  338→212건).
+- 근거: BACKLOG-AND-STALE-TESTS-ROUND3_20261003.txt.
+
+### M538. 완료 - SERVER-SAFE-START
+- python web_server.py는 포트 사용 중이면 안내 후 exit 2,
+  교체는 --replace(그 포트 PID만)(8616bb1e), CLAUDE.md
+  39~45번 세션 공통 규칙(경로 깨짐 복구 da568665). 사용자
+  재기동 명령: cd X:\xDataNexPro\nxDTV ; python
+  web_server.py --replace. 2026-10-02 22:35 PID 4484→10636
+  재기동 원인 = 사용자가 한 세션에 "서버재시작해줘" 요청
+  (사고 아님).
+- 근거: BACKLOG-AND-STALE-TESTS-ROUND3_20261003.txt.
+
+### M539. 개선(대기) - REUSE-DECISION-UPGRADE
+- DB 단위 변경 기록 사용 가능 점검·테이블 단위 가능
+  여부(2단계 스냅샷)·자동 판단(원 실행 소요 < 확인
+  비용×2면 바로 실행)·Oracle 원본·목적 동시 조회·
+  [REUSE-DECISION] 측정 로그·정책 "자동/항상 실행" —
+  진행: REUSE-DECISION-UPGRADE-SERVER(서버), 설정 화면은
+  RUN-OPTIONS 후. 근거: PG 변경 확인 36ms vs Oracle 쪽당
+  0.2~0.6초, 50만 행급 Oracle은 재사용 이득 없음, 타
+  DBMS 어댑터 없음.
+- 근거: BACKLOG-AND-STALE-TESTS-ROUND3_20261003.txt.
+
+### M540. 버그(진행) - BATCH-CURRENT-TARGETS-DUP
+- 같은 그룹 파일명 다른 배치 2개 이상이면 이전 배치
+  목적 테이블이 current에 노출, 배치 내부 중복 목적
+  테이블도 current(0648f393 이후) — 진행:
+  BATCH-CURRENT-TARGETS-DUP-AND-SINGLE-INNERHTML-FIX.
+- 근거: BACKLOG-AND-STALE-TESTS-ROUND3_20261003.txt.
+
+### M541. 개선(낮음) - POLICY-SCREEN-STALE-TEXT
+- 검증 정책 설정 화면 "적용 범위 안내"의 "회색으로
+  비활성화…" 문구가 1535b2df 이후 사실과 다름
+  (ui/tabler_renderer.py:5295) — RUN-OPTIONS 후 정리.
+- 근거: BACKLOG-AND-STALE-TESTS-ROUND3_20261003.txt.
+
+### M542. 개선(낮음) - STAGE5-STOP-LINK-BATCH
+- 5번 탭 레코드 조회 대기 중 "■ 중단"이
+  /single/active-run/cancel을 호출 — 일괄 5번 탭에서
+  시작한 조회도 멈추는지 미확인. 큰 그룹 목적 전용
+  역방향 조회 추가로 1억 행 레코드 조회 시간 증가
+  가능(미측정).
+- 근거: BACKLOG-AND-STALE-TESTS-ROUND3_20261003.txt.
+
+### M543. 운영 메모 - WORKFLOW-NOTES-20261003
+- 같은 지침이 두 터미널에서 실행된 사례 2회째(RUN-OPTIONS
+  — 한쪽이 먼저 알아차리고 손 뗌) → 지침마다 터미널 구분
+  명시. 세션이 지침에서 금지한 전체 스위트를 반복
+  실행(70~81분) → CLAUDE.md 41번에 이유와 함께 고정.
+  Windows 보안 전체 검사 중 시간 측정·화면 대기 실패
+  가능 — 재실행으로 확인.
+- 근거: BACKLOG-AND-STALE-TESTS-ROUND3_20261003.txt.
